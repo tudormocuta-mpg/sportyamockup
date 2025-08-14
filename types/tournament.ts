@@ -17,10 +17,11 @@ export interface Court {
   name: string
   surface: 'hard' | 'clay' | 'grass' | 'carpet'
   indoor: boolean
-  lighting: boolean
+  lighting?: boolean
   isFinalsCourt?: boolean
   capacity?: number
   bookingPriority?: number
+  notes?: string
 }
 
 export type MatchStatus = 'scheduled' | 'in-progress' | 'completed' | 'walkover' | 'postponed'
@@ -157,6 +158,9 @@ export interface TournamentContextType {
   moveMatch: (matchId: string, courtId: string, timeSlot: string) => void
   addBlocker: (blocker: Omit<Blocker, 'id' | 'createdAt'>) => void
   removeBlocker: (blockerId: string) => void
+  addCourt: (court: Court) => void
+  updateCourt: (courtId: string, updates: Partial<Court>) => void
+  deleteCourt: (courtId: string) => void
   checkConflicts: () => void
   clearConflicts: () => void
 }
@@ -172,6 +176,9 @@ export type TournamentAction =
   | { type: 'MOVE_MATCH'; payload: { matchId: string; courtId: string; timeSlot: string } }
   | { type: 'ADD_BLOCKER'; payload: Blocker }
   | { type: 'REMOVE_BLOCKER'; payload: string }
+  | { type: 'ADD_COURT'; payload: Court }
+  | { type: 'UPDATE_COURT'; payload: { courtId: string; updates: Partial<Court> } }
+  | { type: 'DELETE_COURT'; payload: string }
   | { type: 'SET_CONFLICTS'; payload: ScheduleConflict[] }
   | { type: 'CLEAR_CONFLICTS' }
 

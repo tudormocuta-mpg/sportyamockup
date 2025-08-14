@@ -9,12 +9,14 @@ import MatchDetailsCard from './MatchDetailsCard'
 import PlayerMatchCard from './PlayerMatchCard'
 import Configuration from './Configuration'
 import Blockers from './Blockers'
+import Courts from './Courts'
+import MatchStatusTracker from './MatchStatusTracker'
 import Export from './Export'
 import Notifications from './Notifications'
 import ScheduleGenerationWizard from './ScheduleGenerationWizard'
-import { CalendarDaysIcon, ChartBarIcon, ExclamationTriangleIcon, ArrowDownTrayIcon, BellIcon, Cog6ToothIcon } from '@heroicons/react/24/outline'
+import { CalendarDaysIcon, ChartBarIcon, ExclamationTriangleIcon, ArrowDownTrayIcon, BellIcon, Cog6ToothIcon, MapPinIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/outline'
 
-type MainTab = 'schedule' | 'wizard' | 'configuration' | 'blockers' | 'export' | 'notifications'
+type MainTab = 'schedule' | 'wizard' | 'configuration' | 'courts' | 'status' | 'blockers' | 'export' | 'notifications'
 
 const TournamentLayout: React.FC = () => {
   const { state, setCurrentView, setSelectedDate, setSelectedMatch } = useTournament()
@@ -26,8 +28,10 @@ const TournamentLayout: React.FC = () => {
     { id: 'schedule', name: 'Schedule', icon: CalendarDaysIcon, color: 'blue' },
     { id: 'wizard', name: 'Schedule Wizard', icon: ChartBarIcon, color: 'purple' },
     { id: 'configuration', name: 'Configuration', icon: Cog6ToothIcon, color: 'gray' },
+    { id: 'courts', name: 'Courts', icon: MapPinIcon, color: 'green' },
+    { id: 'status', name: 'Match Status', icon: ClipboardDocumentListIcon, color: 'orange' },
     { id: 'blockers', name: 'Blockers', icon: ExclamationTriangleIcon, color: 'red' },
-    { id: 'export', name: 'Export', icon: ArrowDownTrayIcon, color: 'green' },
+    { id: 'export', name: 'Export', icon: ArrowDownTrayIcon, color: 'indigo' },
     { id: 'notifications', name: 'Notifications', icon: BellIcon, color: 'yellow' }
   ]
 
@@ -69,6 +73,10 @@ const TournamentLayout: React.FC = () => {
         return <ScheduleGenerationWizard />
       case 'configuration':
         return <Configuration />
+      case 'courts':
+        return <Courts />
+      case 'status':
+        return <MatchStatusTracker />
       case 'blockers':
         return <Blockers />
       case 'export':

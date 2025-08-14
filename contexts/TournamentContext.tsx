@@ -157,6 +157,31 @@ const tournamentReducer = (state: TournamentState, action: TournamentAction): To
         blockers: state.blockers.filter(blocker => blocker.id !== action.payload)
       }
     
+    case 'ADD_COURT':
+      return {
+        ...state,
+        courts: [...state.courts, action.payload]
+      }
+    
+    case 'UPDATE_COURT':
+      return {
+        ...state,
+        courts: state.courts.map(court => 
+          court.id === action.payload.courtId 
+            ? { ...court, ...action.payload.updates }
+            : court
+        )
+      }
+    
+    case 'DELETE_COURT':
+      return {
+        ...state,
+        courts: state.courts.filter(court => court.id !== action.payload),
+        // Also remove matches and blockers associated with the deleted court
+        matches: state.matches.filter(match => match.courtId !== action.payload),
+        blockers: state.blockers.filter(blocker => blocker.courtId !== action.payload)
+      }
+    
     case 'SET_CONFLICTS':
       return { ...state, conflicts: action.payload }
     
@@ -259,6 +284,18 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
     dispatch({ type: 'SET_CONFLICTS', payload: conflicts })
   }
 
+  const addCourt = (court: Court) => {
+    dispatch({ type: 'ADD_COURT', payload: court })
+  }
+
+  const updateCourt = (courtId: string, updates: Partial<Court>) => {
+    dispatch({ type: 'UPDATE_COURT', payload: { courtId, updates } })
+  }
+
+  const deleteCourt = (courtId: string) => {
+    dispatch({ type: 'DELETE_COURT', payload: courtId })
+  }
+
   const clearConflicts = () => {
     dispatch({ type: 'CLEAR_CONFLICTS' })
   }
@@ -274,6 +311,9 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
     moveMatch,
     addBlocker,
     removeBlocker,
+    addCourt,
+    updateCourt,
+    deleteCourt,
     checkConflicts,
     clearConflicts
   }
