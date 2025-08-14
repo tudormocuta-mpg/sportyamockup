@@ -19,14 +19,54 @@ import { CalendarDaysIcon, ChartBarIcon, ExclamationTriangleIcon, ArrowDownTrayI
 type MainTab = 'schedule' | 'wizard' | 'configuration' | 'courts' | 'status' | 'blockers' | 'export' | 'notifications'
 
 const TournamentLayout: React.FC = () => {
-  const { state, setCurrentView, setSelectedDate, setSelectedMatch } = useTournament()
-  const [activeMainTab, setActiveMainTab] = useState<MainTab>('schedule')
+  const { state, setCurrentView, setSelectedDate, setSelectedMatch, resetSchedule } = useTournament()
+  
+  // Check if this is a fresh tournament (no scheduled matches)
+  const isFreshTournament = state.matches.every(match => !match.scheduledTime || !match.scheduledDate)
+  const hasGeneratedSchedule = state.matches.some(match => match.scheduledTime && match.scheduledDate)
+  
+  // Start with wizard for fresh tournaments, schedule for existing ones
+  const [activeMainTab, setActiveMainTab] = useState<MainTab>(isFreshTournament ? 'wizard' : 'schedule')
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null)
+  // Handle Schedule Wizard access - directly navigate since reset is handled in wizard
+  const handleScheduleWizardClick = () => {
+    setActiveMainTab('wizard')
+  }
 
-  // Main navigation tabs with icons
+  // Helper function to get active tab styles with proper Tailwind classes
+  const getActiveTabStyles = (color: string): string => {
+    const colorMap: Record<string, string> = {
+      blue: 'border-blue-500 text-blue-700 bg-white shadow-sm',
+      purple: 'border-purple-500 text-purple-700 bg-white shadow-sm', 
+      gray: 'border-gray-500 text-gray-700 bg-white shadow-sm',
+      green: 'border-green-500 text-green-700 bg-white shadow-sm',
+      orange: 'border-orange-500 text-orange-700 bg-white shadow-sm',
+      red: 'border-red-500 text-red-700 bg-white shadow-sm',
+      indigo: 'border-indigo-500 text-indigo-700 bg-white shadow-sm',
+      yellow: 'border-yellow-500 text-yellow-700 bg-white shadow-sm'
+    }
+    return colorMap[color] || 'border-blue-500 text-blue-700 bg-white shadow-sm'
+  }
+
+  // Helper function to get active icon styles
+  const getActiveIconStyles = (color: string): string => {
+    const colorMap: Record<string, string> = {
+      blue: 'text-blue-600',
+      purple: 'text-purple-600',
+      gray: 'text-gray-600', 
+      green: 'text-green-600',
+      orange: 'text-orange-600',
+      red: 'text-red-600',
+      indigo: 'text-indigo-600',
+      yellow: 'text-yellow-600'
+    }
+    return colorMap[color] || 'text-blue-600'
+  }
+
+  // Main navigation tabs with icons - Schedule Wizard first as primary entry point
   const mainTabs: { id: MainTab; name: string; icon: React.ComponentType<{ className?: string }>; color: string }[] = [
-    { id: 'schedule', name: 'Schedule', icon: CalendarDaysIcon, color: 'blue' },
     { id: 'wizard', name: 'Schedule Wizard', icon: ChartBarIcon, color: 'purple' },
+    { id: 'schedule', name: 'Schedule', icon: CalendarDaysIcon, color: 'blue' },
     { id: 'configuration', name: 'Configuration', icon: Cog6ToothIcon, color: 'gray' },
     { id: 'courts', name: 'Courts', icon: MapPinIcon, color: 'green' },
     { id: 'status', name: 'Match Status', icon: ClipboardDocumentListIcon, color: 'orange' },
@@ -66,26 +106,31 @@ const TournamentLayout: React.FC = () => {
 
   // Render current main tab content
   const renderMainTabContent = () => {
-    switch (activeMainTab) {
-      case 'schedule':
-        return renderScheduleView()
-      case 'wizard':
-        return <ScheduleGenerationWizard />
-      case 'configuration':
-        return <Configuration />
-      case 'courts':
-        return <Courts />
-      case 'status':
-        return <MatchStatusTracker />
-      case 'blockers':
-        return <Blockers />
-      case 'export':
-        return <Export />
-      case 'notifications':
-        return <Notifications />
-      default:
-        return renderScheduleView()
+    if (activeMainTab === 'schedule') {
+      return renderScheduleView()
     }
+    if (activeMainTab === 'wizard') {
+      return <ScheduleGenerationWizard />
+    }
+    if (activeMainTab === 'configuration') {
+      return <Configuration />
+    }
+    if (activeMainTab === 'courts') {
+      return <Courts />
+    }
+    if (activeMainTab === 'status') {
+      return <MatchStatusTracker />
+    }
+    if (activeMainTab === 'blockers') {
+      return <Blockers />
+    }
+    if (activeMainTab === 'export') {
+      return <Export />
+    }
+    if (activeMainTab === 'notifications') {
+      return <Notifications />
+    }
+    return renderScheduleView()
   }
 
   // Render current schedule view
@@ -113,9 +158,8 @@ const TournamentLayout: React.FC = () => {
   return (
     <div className="tournament-layout h-screen flex flex-col bg-gradient-to-br from-gray-50 to-white">
       {/* Header */}
-      <header className="bg-white shadow-lg border-b border-gray-200 relative">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 opacity-5"></div>
-        <div className="relative px-6 py-4">
+      <header className="bg-white shadow-lg border-b border-gray-200">
+        <div className="px-6 py-4">
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
@@ -171,19 +215,29 @@ const TournamentLayout: React.FC = () => {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveMainTab(tab.id)}
+                  onClick={() => {
+                    if (tab.id === 'wizard') {
+                      handleScheduleWizardClick()
+                    } else {
+                      setActiveMainTab(tab.id)
+                    }
+                  }}
                   className={`group flex items-center space-x-2 py-3 px-4 border-b-3 font-medium text-sm transition-all duration-200 rounded-t-lg whitespace-nowrap ${
                     activeMainTab === tab.id
-                      ? `border-${tab.color}-500 text-${tab.color}-700 bg-white shadow-sm`
+                      ? getActiveTabStyles(tab.color)
+                      : tab.id === 'wizard' && isFreshTournament
+                      ? 'border-transparent text-purple-700 bg-purple-50 hover:bg-purple-100 animate-pulse'
                       : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-100'
                   }`}
                 >
                   <Icon className={`w-5 h-5 transition-colors ${
                     activeMainTab === tab.id
-                      ? `text-${tab.color}-600`
+                      ? getActiveIconStyles(tab.color)
                       : 'text-gray-500 group-hover:text-gray-600'
                   }`} />
-                  <span>{tab.name}</span>
+                  <span>
+                    {tab.id === 'wizard' && isFreshTournament ? 'Start Here →' : tab.name}
+                  </span>
                   {tab.id === 'blockers' && state.conflicts.length > 0 && (
                     <div className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-500 rounded-full animate-bounce">
                       {state.conflicts.length}
@@ -303,6 +357,7 @@ const TournamentLayout: React.FC = () => {
           </div>
         </div>
       </footer>
+
     </div>
   )
 }

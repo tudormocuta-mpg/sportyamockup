@@ -9,6 +9,18 @@ const GridView: React.FC = () => {
   const [dragOverCell, setDragOverCell] = useState<{ courtId: string; timeSlot: string } | null>(null)
   const [hoveredMatch, setHoveredMatch] = useState<string | null>(null)
   const [animatingCells, setAnimatingCells] = useState<Set<string>>(new Set())
+  const [courtOrder, setCourtOrder] = useState<string[]>(state.courts.map(c => c.id))
+  const [hoveredCourt, setHoveredCourt] = useState<string | null>(null)
+  
+  // Update court order when courts change
+  useEffect(() => {
+    setCourtOrder(state.courts.map(c => c.id))
+  }, [state.courts])
+  
+  // Get ordered courts
+  const orderedCourts = courtOrder
+    .map(id => state.courts.find(c => c.id === id))
+    .filter(Boolean)
 
   // Generate time slots from 8:00 to 20:00 with 30-minute intervals
   const generateTimeSlots = (): string[] => {
@@ -21,19 +33,100 @@ const GridView: React.FC = () => {
   }
 
   const timeSlots = generateTimeSlots()
+  
+  // Court reordering functions
+  const moveCourtLeft = (courtId: string) => {
+    const index = courtOrder.indexOf(courtId)
+    if (index > 0) {
+      const newOrder = [...courtOrder]
+      ;[newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]]
+      setCourtOrder(newOrder)
+    }
+  }
+  
+  const moveCourtRight = (courtId: string) => {
+    const index = courtOrder.indexOf(courtId)
+    if (index < courtOrder.length - 1) {
+      const newOrder = [...courtOrder]
+      ;[newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]]
+      setCourtOrder(newOrder)
+    }
+  }
 
   // Filter matches for selected date
   const dayMatches = state.matches.filter(match => match.scheduledDate === state.selectedDate)
   const dayBlockers = state.blockers.filter(blocker => blocker.date === state.selectedDate)
+  
+  // Get court availability from wizard data (mock data for demo)
+  // This would normally come from a context or props
+  const getCourtAvailability = () => {
+    const wizardCourtData = {
+      '2024-08-15': [
+        {
+          courtId: 'c3',
+          timeSlots: [{ startTime: '14:00', endTime: '20:00' }] // Half day blocked
+        },
+        {
+          courtId: 'c6',
+          timeSlots: [
+            { startTime: '08:00', endTime: '12:00' },
+            { startTime: '16:00', endTime: '20:00' }
+          ] // 4 hours blocked (12-16)
+        }
+      ],
+      '2024-08-16': [], // All courts fully available
+      '2024-08-17': []  // All courts fully available
+    }
+    return wizardCourtData[state.selectedDate] || []
+  }
+  
+  // Check if a time slot is available for a specific court
+  const isCourtTimeSlotAvailable = (courtId: string, timeSlot: string): boolean => {
+    const courtData = getCourtAvailability().find(court => court.courtId === courtId)
+    if (!courtData) return true // If no restriction data, assume available
+    
+    // Check if timeSlot falls within any available time slots
+    return courtData.timeSlots.some(slot => {
+      return timeSlot >= slot.startTime && timeSlot < slot.endTime
+    })
+  }
 
-  // Get match for specific court and time slot
+  // Calculate how many slots a match spans
+  const getMatchSlotSpan = (match: Match): number => {
+    if (!match.estimatedDuration) return 1
+    return Math.ceil(match.estimatedDuration / 30) // 30-minute slots
+  }
+  
+  // Check if a time slot is within a match's duration
+  const isSlotWithinMatch = (match: Match, timeSlot: string): boolean => {
+    if (!match.scheduledTime || !match.estimatedDuration) return false
+    
+    const matchStart = match.scheduledTime
+    const [startHour, startMin] = matchStart.split(':').map(Number)
+    const matchEndMinutes = startHour * 60 + startMin + match.estimatedDuration
+    
+    const [slotHour, slotMin] = timeSlot.split(':').map(Number)
+    const slotMinutes = slotHour * 60 + slotMin
+    const matchStartMinutes = startHour * 60 + startMin
+    
+    return slotMinutes >= matchStartMinutes && slotMinutes < matchEndMinutes
+  }
+  
+  // Get match for specific court and time slot (including spanning matches)
   const getMatchForSlot = (courtId: string, timeSlot: string): Match | undefined => {
-    return dayMatches.find(match => 
+    // First check for matches starting at this slot
+    const directMatch = dayMatches.find(match => 
       match.courtId === courtId && match.scheduledTime === timeSlot
+    )
+    if (directMatch) return directMatch
+    
+    // Then check for matches that span into this slot
+    return dayMatches.find(match => 
+      match.courtId === courtId && isSlotWithinMatch(match, timeSlot)
     )
   }
 
-  // Get blocker for specific court and time slot
+  // Get blocker for specific court and time slot (deprecated, kept for compatibility)
   const getBlockerForSlot = (courtId: string, timeSlot: string): Blocker | undefined => {
     return dayBlockers.find(blocker => 
       blocker.courtId === courtId && 
@@ -51,7 +144,10 @@ const GridView: React.FC = () => {
       return false
     }
     
-    // Check if slot is blocked
+    // Check if court time slot is available
+    if (!isCourtTimeSlotAvailable(courtId, timeSlot)) return false
+    
+    // Legacy blocker check (kept for compatibility)
     const blocker = getBlockerForSlot(courtId, timeSlot)
     if (blocker) return false
     
@@ -136,8 +232,12 @@ const GridView: React.FC = () => {
     const isValidDropZone = draggedMatch && isValidDrop(courtId, timeSlot)
     const isInvalidDropZone = draggedMatch && !isValidDrop(courtId, timeSlot)
     const isAnimating = animatingCells.has(cellKey)
+    const isCourtAvailable = isCourtTimeSlotAvailable(courtId, timeSlot)
     
-    if (isAnimating) {
+    // Gray out unavailable time slots
+    if (!isCourtAvailable) {
+      classes += ' bg-gray-200 opacity-60 cursor-not-allowed border-dashed border-gray-300'
+    } else if (isAnimating) {
       classes += ' animate-pulse bg-green-50'
     } else if (isDragOver && isValidDropZone) {
       classes += ' bg-green-100 border-2 border-green-400 shadow-lg'
@@ -145,6 +245,8 @@ const GridView: React.FC = () => {
       classes += ' bg-red-100 border-2 border-red-400'
     } else if (draggedMatch && isValidDropZone) {
       classes += ' bg-blue-50 border-blue-200'
+    } else {
+      classes += ' bg-white hover:bg-gray-50'
     }
     
     return classes
@@ -196,14 +298,43 @@ const GridView: React.FC = () => {
               <th className="w-20 p-3 text-left font-semibold text-gray-700 border-b-2 border-gray-300">
                 Time
               </th>
-              {state.courts.map((court) => (
-                <th key={court.id} className="min-w-48 p-3 border-b-2 border-gray-300">
-                  <div className="flex flex-col items-center">
-                    <span className="font-bold text-gray-800">{court.name}</span>
-                    <span className="text-xs text-gray-500 capitalize">
-                      {court.surface} • {court.indoor ? 'Indoor' : 'Outdoor'}
-                      {court.isFinalsCourt && ' • Finals Court'}
-                    </span>
+              {orderedCourts.map((court, index) => (
+                <th 
+                  key={court.id} 
+                  className="min-w-48 p-3 border-b-2 border-gray-300 relative"
+                  onMouseEnter={() => setHoveredCourt(court.id)}
+                  onMouseLeave={() => setHoveredCourt(null)}
+                >
+                  <div className="flex items-center justify-center">
+                    {/* Left arrow */}
+                    {hoveredCourt === court.id && index > 0 && (
+                      <button
+                        onClick={() => moveCourtLeft(court.id)}
+                        className="absolute left-1 top-1/2 -translate-y-1/2 w-6 h-6 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center transition-all"
+                        title="Move court left"
+                      >
+                        <span className="text-sm">◀</span>
+                      </button>
+                    )}
+                    
+                    <div className="flex flex-col items-center">
+                      <span className="font-bold text-gray-800">{court.name}</span>
+                      <span className="text-xs text-gray-500 capitalize">
+                        {court.surface} • {court.indoor ? 'Indoor' : 'Outdoor'}
+                        {court.isFinalsCourt && ' • Finals Court'}
+                      </span>
+                    </div>
+                    
+                    {/* Right arrow */}
+                    {hoveredCourt === court.id && index < orderedCourts.length - 1 && (
+                      <button
+                        onClick={() => moveCourtRight(court.id)}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center transition-all"
+                        title="Move court right"
+                      >
+                        <span className="text-sm">▶</span>
+                      </button>
+                    )}
                   </div>
                 </th>
               ))}
@@ -215,19 +346,27 @@ const GridView: React.FC = () => {
                 <td className="p-2 text-center font-medium text-gray-600 bg-gray-50 sticky left-0 z-5">
                   {timeSlot}
                 </td>
-                {state.courts.map((court) => {
+                {orderedCourts.map((court) => {
                   const match = getMatchForSlot(court.id, timeSlot)
                   const blocker = getBlockerForSlot(court.id, timeSlot)
+                  const isMatchStart = match && match.scheduledTime === timeSlot
+                  const matchSpan = match ? getMatchSlotSpan(match) : 1
+                  
+                  // Skip rendering cell if it's covered by a previous match span
+                  if (match && !isMatchStart) {
+                    return null // This cell is covered by rowSpan from the match start cell
+                  }
                   
                   return (
                     <td
                       key={`${court.id}-${timeSlot}`}
                       className={getCellClasses(court.id, timeSlot)}
+                      rowSpan={isMatchStart ? matchSpan : 1}
                       onDragOver={(e) => handleDragOver(e, court.id, timeSlot)}
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, court.id, timeSlot)}
                     >
-                      {match && (
+                      {match && isMatchStart && (
                         <div
                           className={`match-card rounded-lg border-2 p-2 cursor-move transition-all duration-200 transform ${getStatusColor(match.status)} ${
                             hoveredMatch === match.id ? 'scale-105 z-10' : ''
@@ -249,6 +388,14 @@ const GridView: React.FC = () => {
                           <div className="truncate text-gray-700 text-xs mt-1">
                             {formatMatchName(match)}
                           </div>
+                          {/* Match Result Display */}
+                          {(match.result || match.score) && (
+                            <div className="bg-white/90 rounded px-1 py-0.5 mt-1">
+                              <span className="text-xs font-bold text-gray-800">
+                                {match.result || match.score}
+                              </span>
+                            </div>
+                          )}
                           <div className="flex justify-between items-center mt-1">
                             <span className="text-xs font-medium capitalize">
                               {match.status === 'in-progress' && (
@@ -261,6 +408,22 @@ const GridView: React.FC = () => {
                                 {match.estimatedDuration}m
                               </span>
                             )}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {!isCourtTimeSlotAvailable(court.id, timeSlot) && !match && !isMatchStart && (
+                        <div 
+                          className="unavailable-slot bg-gradient-to-br from-gray-100 to-gray-200 border border-gray-400 rounded-lg p-2 text-xs shadow-sm opacity-70"
+                          title="Court not available during this time slot"
+                        >
+                          <div className="flex items-center justify-center h-full">
+                            <div className="text-center">
+                              <div className="w-4 h-4 bg-gray-500 rounded-full mx-auto mb-1 opacity-50"></div>
+                              <div className="font-medium text-gray-600 text-xs">
+                                Not Available
+                              </div>
+                            </div>
                           </div>
                         </div>
                       )}
@@ -285,7 +448,7 @@ const GridView: React.FC = () => {
                         </div>
                       )}
                       
-                      {!match && !blocker && (
+                      {!match && !blocker && isCourtTimeSlotAvailable(court.id, timeSlot) && !isMatchStart && (
                         <div className="h-full w-full" />
                       )}
                     </td>

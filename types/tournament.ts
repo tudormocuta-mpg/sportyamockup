@@ -24,7 +24,7 @@ export interface Court {
   notes?: string
 }
 
-export type MatchStatus = 'scheduled' | 'in-progress' | 'completed' | 'walkover' | 'postponed'
+export type MatchStatus = 'scheduled' | 'in-progress' | 'completed' | 'walkover' | 'postponed' | 'unscheduled'
 
 export interface Match {
   id: string
@@ -41,6 +41,7 @@ export interface Match {
   scheduledTime?: string
   status: MatchStatus
   score?: string
+  result?: string  // Live result display (e.g., "6-4, 3-2")
   duration?: number
   estimatedDuration?: number
   isDoubles?: boolean
@@ -163,6 +164,8 @@ export interface TournamentContextType {
   deleteCourt: (courtId: string) => void
   checkConflicts: () => void
   clearConflicts: () => void
+  applySchedule: () => void
+  resetSchedule: () => void
 }
 
 // Action types for reducer
@@ -181,6 +184,8 @@ export type TournamentAction =
   | { type: 'DELETE_COURT'; payload: string }
   | { type: 'SET_CONFLICTS'; payload: ScheduleConflict[] }
   | { type: 'CLEAR_CONFLICTS' }
+  | { type: 'APPLY_SCHEDULE'; payload: Match[] }
+  | { type: 'RESET_SCHEDULE' }
 
 // Configuration types
 export interface TournamentConfiguration {

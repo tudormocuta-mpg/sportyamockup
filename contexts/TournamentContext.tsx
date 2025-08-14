@@ -13,6 +13,55 @@ import {
   ScheduleConflict 
 } from '../types/tournament'
 
+// Generate fully scheduled matches (for after wizard completion)
+// Respecting court availability: Court 3 (unavailable until 14:00), Court 6 (unavailable 12:00-16:00)
+const generateScheduledMatches = (): Match[] => [
+  { id: 'm1', drawId: 'd1', drawName: 'Men\'s Singles', roundName: 'First Round', player1Id: 'p1', player1Name: 'John Smith', player2Id: 'p3', player2Name: 'Michael Brown', courtId: 'c1', courtName: 'Center Court', scheduledDate: '2024-08-15', scheduledTime: '09:00', status: 'scheduled', estimatedDuration: 90, priority: 'high', result: '', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm2', drawId: 'd1', drawName: 'Men\'s Singles', roundName: 'First Round', player1Id: 'p5', player1Name: 'David Wilson', player2Id: 'p7', player2Name: 'James Taylor', courtId: 'c2', courtName: 'Court 2', scheduledDate: '2024-08-15', scheduledTime: '09:00', status: 'scheduled', estimatedDuration: 90, priority: 'medium', result: '', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm3', drawId: 'd1', drawName: 'Men\'s Singles', roundName: 'First Round', player1Id: 'p9', player1Name: 'Robert Thomas', player2Id: 'p11', player2Name: 'Daniel Garcia', courtId: 'c3', courtName: 'Court 3', scheduledDate: '2024-08-15', scheduledTime: '14:00', status: 'in-progress', estimatedDuration: 90, priority: 'high', result: '6-4, 3-2', createdAt: new Date(), updatedAt: new Date() }, // Moved to 14:00 due to court availability
+  { id: 'm4', drawId: 'd1', drawName: 'Men\'s Singles', roundName: 'First Round', player1Id: 'p13', player1Name: 'Christopher Lee', player2Id: 'p15', player2Name: 'Kevin Harris', courtId: 'c4', courtName: 'Indoor Court A', scheduledDate: '2024-08-15', scheduledTime: '10:30', status: 'scheduled', estimatedDuration: 90, priority: 'medium', result: '', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm5', drawId: 'd2', drawName: 'Women\'s Singles', roundName: 'First Round', player1Id: 'p2', player1Name: 'Emma Johnson', player2Id: 'p4', player2Name: 'Sarah Davis', courtId: 'c1', courtName: 'Center Court', scheduledDate: '2024-08-15', scheduledTime: '11:00', status: 'scheduled', estimatedDuration: 90, priority: 'high', result: '', createdAt: new Date(), updatedAt: new Date() }, // Adjusted to avoid overlap
+  { id: 'm6', drawId: 'd2', drawName: 'Women\'s Singles', roundName: 'First Round', player1Id: 'p6', player1Name: 'Lisa Miller', player2Id: 'p8', player2Name: 'Amanda Anderson', courtId: 'c2', courtName: 'Court 2', scheduledDate: '2024-08-15', scheduledTime: '11:00', status: 'scheduled', estimatedDuration: 90, priority: 'medium', result: '', createdAt: new Date(), updatedAt: new Date() }, // Adjusted to avoid overlap
+  { id: 'm7', drawId: 'd2', drawName: 'Women\'s Singles', roundName: 'First Round', player1Id: 'p10', player1Name: 'Jessica Martinez', player2Id: 'p12', player2Name: 'Ashley Rodriguez', courtId: 'c5', courtName: 'Indoor Court B', scheduledDate: '2024-08-15', scheduledTime: '13:00', status: 'completed', score: '6-4, 6-2', result: '6-4, 6-2', estimatedDuration: 90, priority: 'medium', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm8', drawId: 'd2', drawName: 'Women\'s Singles', roundName: 'First Round', player1Id: 'p14', player1Name: 'Megan White', player2Id: 'p16', player2Name: 'Rachel Clark', courtId: 'c6', courtName: 'Practice Court', scheduledDate: '2024-08-15', scheduledTime: '16:30', status: 'scheduled', estimatedDuration: 90, priority: 'low', result: '', createdAt: new Date(), updatedAt: new Date() }, // Moved to 16:30 due to court availability
+  { id: 'm9', drawId: 'd3', drawName: 'Men\'s Doubles', roundName: 'Quarterfinals', player1Name: 'Smith/Brown', player2Name: 'Wilson/Taylor', courtId: 'c1', courtName: 'Center Court', scheduledDate: '2024-08-15', scheduledTime: '15:00', status: 'scheduled', isDoubles: true, estimatedDuration: 120, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm10', drawId: 'd3', drawName: 'Men\'s Doubles', roundName: 'Quarterfinals', player1Name: 'Thomas/Garcia', player2Name: 'Lee/Harris', courtId: 'c2', courtName: 'Court 2', scheduledDate: '2024-08-15', scheduledTime: '15:00', status: 'scheduled', isDoubles: true, estimatedDuration: 120, priority: 'medium', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm11', drawId: 'd4', drawName: 'Women\'s Doubles', roundName: 'Semifinals', player1Name: 'Johnson/Davis', player2Name: 'Miller/Anderson', courtId: 'c3', courtName: 'Court 3', scheduledDate: '2024-08-16', scheduledTime: '09:00', status: 'scheduled', isDoubles: true, estimatedDuration: 120, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm12', drawId: 'd4', drawName: 'Women\'s Doubles', roundName: 'Semifinals', player1Name: 'Martinez/Rodriguez', player2Name: 'White/Clark', courtId: 'c4', courtName: 'Indoor Court A', scheduledDate: '2024-08-16', scheduledTime: '09:00', status: 'scheduled', isDoubles: true, estimatedDuration: 120, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm13', drawId: 'd1', drawName: 'Men\'s Singles', roundName: 'Quarterfinals', scheduledDate: '2024-08-16', scheduledTime: '11:00', status: 'scheduled', estimatedDuration: 90, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm14', drawId: 'd1', drawName: 'Men\'s Singles', roundName: 'Quarterfinals', scheduledDate: '2024-08-16', scheduledTime: '11:00', status: 'scheduled', estimatedDuration: 90, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm15', drawId: 'd2', drawName: 'Women\'s Singles', roundName: 'Quarterfinals', scheduledDate: '2024-08-16', scheduledTime: '13:00', status: 'scheduled', estimatedDuration: 90, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm16', drawId: 'd2', drawName: 'Women\'s Singles', roundName: 'Quarterfinals', scheduledDate: '2024-08-16', scheduledTime: '13:00', status: 'scheduled', estimatedDuration: 90, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm17', drawId: 'd5', drawName: 'Mixed Doubles', roundName: 'Final', scheduledDate: '2024-08-17', scheduledTime: '14:00', status: 'scheduled', isDoubles: true, courtId: 'c1', courtName: 'Center Court', estimatedDuration: 120, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm18', drawId: 'd1', drawName: 'Men\'s Singles', roundName: 'Semifinals', scheduledDate: '2024-08-17', scheduledTime: '10:00', status: 'scheduled', estimatedDuration: 90, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm19', drawId: 'd1', drawName: 'Men\'s Singles', roundName: 'Semifinals', scheduledDate: '2024-08-17', scheduledTime: '12:00', status: 'scheduled', estimatedDuration: 90, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm20', drawId: 'd1', drawName: 'Men\'s Singles', roundName: 'Final', scheduledDate: '2024-08-17', scheduledTime: '16:00', status: 'scheduled', courtId: 'c1', courtName: 'Center Court', estimatedDuration: 120, priority: 'high', createdAt: new Date(), updatedAt: new Date() }
+]
+
+// Generate fresh/unscheduled matches (for fresh tournament)
+const generateUnscheduledMatches = (): Match[] => [
+  { id: 'm1', drawId: 'd1', drawName: 'Men\'s Singles', roundName: 'First Round', player1Id: 'p1', player1Name: 'John Smith', player2Id: 'p3', player2Name: 'Michael Brown', status: 'unscheduled', estimatedDuration: 90, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm2', drawId: 'd1', drawName: 'Men\'s Singles', roundName: 'First Round', player1Id: 'p5', player1Name: 'David Wilson', player2Id: 'p7', player2Name: 'James Taylor', status: 'unscheduled', estimatedDuration: 90, priority: 'medium', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm3', drawId: 'd1', drawName: 'Men\'s Singles', roundName: 'First Round', player1Id: 'p9', player1Name: 'Robert Thomas', player2Id: 'p11', player2Name: 'Daniel Garcia', status: 'unscheduled', estimatedDuration: 90, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm4', drawId: 'd1', drawName: 'Men\'s Singles', roundName: 'First Round', player1Id: 'p13', player1Name: 'Christopher Lee', player2Id: 'p15', player2Name: 'Kevin Harris', status: 'unscheduled', estimatedDuration: 90, priority: 'medium', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm5', drawId: 'd2', drawName: 'Women\'s Singles', roundName: 'First Round', player1Id: 'p2', player1Name: 'Emma Johnson', player2Id: 'p4', player2Name: 'Sarah Davis', status: 'unscheduled', estimatedDuration: 90, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm6', drawId: 'd2', drawName: 'Women\'s Singles', roundName: 'First Round', player1Id: 'p6', player1Name: 'Lisa Miller', player2Id: 'p8', player2Name: 'Amanda Anderson', status: 'unscheduled', estimatedDuration: 90, priority: 'medium', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm7', drawId: 'd2', drawName: 'Women\'s Singles', roundName: 'First Round', player1Id: 'p10', player1Name: 'Jessica Martinez', player2Id: 'p12', player2Name: 'Ashley Rodriguez', status: 'unscheduled', estimatedDuration: 90, priority: 'medium', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm8', drawId: 'd2', drawName: 'Women\'s Singles', roundName: 'First Round', player1Id: 'p14', player1Name: 'Megan White', player2Id: 'p16', player2Name: 'Rachel Clark', status: 'unscheduled', estimatedDuration: 90, priority: 'low', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm9', drawId: 'd3', drawName: 'Men\'s Doubles', roundName: 'Quarterfinals', player1Name: 'Smith/Brown', player2Name: 'Wilson/Taylor', status: 'unscheduled', isDoubles: true, estimatedDuration: 120, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm10', drawId: 'd3', drawName: 'Men\'s Doubles', roundName: 'Quarterfinals', player1Name: 'Thomas/Garcia', player2Name: 'Lee/Harris', status: 'unscheduled', isDoubles: true, estimatedDuration: 120, priority: 'medium', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm11', drawId: 'd4', drawName: 'Women\'s Doubles', roundName: 'Semifinals', player1Name: 'Johnson/Davis', player2Name: 'Miller/Anderson', status: 'unscheduled', isDoubles: true, estimatedDuration: 120, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm12', drawId: 'd4', drawName: 'Women\'s Doubles', roundName: 'Semifinals', player1Name: 'Martinez/Rodriguez', player2Name: 'White/Clark', status: 'unscheduled', isDoubles: true, estimatedDuration: 120, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm13', drawId: 'd1', drawName: 'Men\'s Singles', roundName: 'Quarterfinals', status: 'unscheduled', estimatedDuration: 90, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm14', drawId: 'd1', drawName: 'Men\'s Singles', roundName: 'Quarterfinals', status: 'unscheduled', estimatedDuration: 90, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm15', drawId: 'd2', drawName: 'Women\'s Singles', roundName: 'Quarterfinals', status: 'unscheduled', estimatedDuration: 90, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm16', drawId: 'd2', drawName: 'Women\'s Singles', roundName: 'Quarterfinals', status: 'unscheduled', estimatedDuration: 90, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm17', drawId: 'd5', drawName: 'Mixed Doubles', roundName: 'Final', status: 'unscheduled', isDoubles: true, estimatedDuration: 120, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm18', drawId: 'd1', drawName: 'Men\'s Singles', roundName: 'Semifinals', status: 'unscheduled', estimatedDuration: 90, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm19', drawId: 'd1', drawName: 'Men\'s Singles', roundName: 'Semifinals', status: 'unscheduled', estimatedDuration: 90, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm20', drawId: 'd1', drawName: 'Men\'s Singles', roundName: 'Final', status: 'unscheduled', estimatedDuration: 120, priority: 'high', createdAt: new Date(), updatedAt: new Date() }
+]
+
 // Generate comprehensive mock data
 const generateMockData = (): TournamentState => {
   const players: Player[] = [
@@ -40,43 +89,16 @@ const generateMockData = (): TournamentState => {
     { id: 'c3', name: 'Court 3', surface: 'clay', indoor: false, lighting: false, capacity: 80, bookingPriority: 3 },
     { id: 'c4', name: 'Indoor Court A', surface: 'hard', indoor: true, lighting: true, capacity: 60, bookingPriority: 4 },
     { id: 'c5', name: 'Indoor Court B', surface: 'carpet', indoor: true, lighting: true, capacity: 60, bookingPriority: 5 },
-    { id: 'c6', name: 'Practice Court', surface: 'hard', indoor: false, lighting: true, capacity: 40, bookingPriority: 6 }
+    { id: 'c6', name: 'Practice Court', surface: 'hard', indoor: false, lighting: true, capacity: 40, bookingPriority: 6 },
+    { id: 'c7', name: 'Court 7', surface: 'hard', indoor: false, lighting: true, capacity: 90, bookingPriority: 7 },
+    { id: 'c8', name: 'Court 8', surface: 'clay', indoor: false, lighting: false, capacity: 70, bookingPriority: 8 }
   ]
 
-  const matches: Match[] = [
-    { id: 'm1', drawId: 'd1', drawName: 'Men&apos;s Singles', roundName: 'First Round', player1Id: 'p1', player1Name: 'John Smith', player2Id: 'p3', player2Name: 'Michael Brown', courtId: 'c1', courtName: 'Center Court', scheduledDate: '2024-08-15', scheduledTime: '09:00', status: 'scheduled', estimatedDuration: 90, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'm2', drawId: 'd1', drawName: 'Men&apos;s Singles', roundName: 'First Round', player1Id: 'p5', player1Name: 'David Wilson', player2Id: 'p7', player2Name: 'James Taylor', courtId: 'c2', courtName: 'Court 2', scheduledDate: '2024-08-15', scheduledTime: '09:00', status: 'scheduled', estimatedDuration: 90, priority: 'medium', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'm3', drawId: 'd1', drawName: 'Men&apos;s Singles', roundName: 'First Round', player1Id: 'p9', player1Name: 'Robert Thomas', player2Id: 'p11', player2Name: 'Daniel Garcia', courtId: 'c3', courtName: 'Court 3', scheduledDate: '2024-08-15', scheduledTime: '10:30', status: 'in-progress', estimatedDuration: 90, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'm4', drawId: 'd1', drawName: 'Men&apos;s Singles', roundName: 'First Round', player1Id: 'p13', player1Name: 'Christopher Lee', player2Id: 'p15', player2Name: 'Kevin Harris', courtId: 'c4', courtName: 'Indoor Court A', scheduledDate: '2024-08-15', scheduledTime: '10:30', status: 'scheduled', estimatedDuration: 90, priority: 'medium', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'm5', drawId: 'd2', drawName: 'Women&apos;s Singles', roundName: 'First Round', player1Id: 'p2', player1Name: 'Emma Johnson', player2Id: 'p4', player2Name: 'Sarah Davis', courtId: 'c1', courtName: 'Center Court', scheduledDate: '2024-08-15', scheduledTime: '12:00', status: 'scheduled', estimatedDuration: 90, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'm6', drawId: 'd2', drawName: 'Women&apos;s Singles', roundName: 'First Round', player1Id: 'p6', player1Name: 'Lisa Miller', player2Id: 'p8', player2Name: 'Amanda Anderson', courtId: 'c2', courtName: 'Court 2', scheduledDate: '2024-08-15', scheduledTime: '12:00', status: 'scheduled', estimatedDuration: 90, priority: 'medium', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'm7', drawId: 'd2', drawName: 'Women&apos;s Singles', roundName: 'First Round', player1Id: 'p10', player1Name: 'Jessica Martinez', player2Id: 'p12', player2Name: 'Ashley Rodriguez', courtId: 'c5', courtName: 'Indoor Court B', scheduledDate: '2024-08-15', scheduledTime: '13:30', status: 'completed', score: '6-4, 6-2', estimatedDuration: 90, priority: 'medium', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'm8', drawId: 'd2', drawName: 'Women&apos;s Singles', roundName: 'First Round', player1Id: 'p14', player1Name: 'Megan White', player2Id: 'p16', player2Name: 'Rachel Clark', courtId: 'c6', courtName: 'Practice Court', scheduledDate: '2024-08-15', scheduledTime: '13:30', status: 'scheduled', estimatedDuration: 90, priority: 'low', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'm9', drawId: 'd3', drawName: 'Men&apos;s Doubles', roundName: 'Quarterfinals', player1Name: 'Smith/Brown', player2Name: 'Wilson/Taylor', courtId: 'c1', courtName: 'Center Court', scheduledDate: '2024-08-15', scheduledTime: '15:00', status: 'scheduled', isDoubles: true, estimatedDuration: 120, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'm10', drawId: 'd3', drawName: 'Men&apos;s Doubles', roundName: 'Quarterfinals', player1Name: 'Thomas/Garcia', player2Name: 'Lee/Harris', courtId: 'c2', courtName: 'Court 2', scheduledDate: '2024-08-15', scheduledTime: '15:00', status: 'scheduled', isDoubles: true, estimatedDuration: 120, priority: 'medium', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'm11', drawId: 'd4', drawName: 'Women&apos;s Doubles', roundName: 'Semifinals', player1Name: 'Johnson/Davis', player2Name: 'Miller/Anderson', courtId: 'c3', courtName: 'Court 3', scheduledDate: '2024-08-16', scheduledTime: '09:00', status: 'scheduled', isDoubles: true, estimatedDuration: 120, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'm12', drawId: 'd4', drawName: 'Women&apos;s Doubles', roundName: 'Semifinals', player1Name: 'Martinez/Rodriguez', player2Name: 'White/Clark', courtId: 'c4', courtName: 'Indoor Court A', scheduledDate: '2024-08-16', scheduledTime: '09:00', status: 'scheduled', isDoubles: true, estimatedDuration: 120, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'm13', drawId: 'd1', drawName: 'Men&apos;s Singles', roundName: 'Quarterfinals', scheduledDate: '2024-08-16', scheduledTime: '11:00', status: 'scheduled', estimatedDuration: 90, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'm14', drawId: 'd1', drawName: 'Men&apos;s Singles', roundName: 'Quarterfinals', scheduledDate: '2024-08-16', scheduledTime: '11:00', status: 'scheduled', estimatedDuration: 90, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'm15', drawId: 'd2', drawName: 'Women&apos;s Singles', roundName: 'Quarterfinals', scheduledDate: '2024-08-16', scheduledTime: '13:00', status: 'scheduled', estimatedDuration: 90, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'm16', drawId: 'd2', drawName: 'Women&apos;s Singles', roundName: 'Quarterfinals', scheduledDate: '2024-08-16', scheduledTime: '13:00', status: 'scheduled', estimatedDuration: 90, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'm17', drawId: 'd5', drawName: 'Mixed Doubles', roundName: 'Final', scheduledDate: '2024-08-17', scheduledTime: '14:00', status: 'scheduled', isDoubles: true, courtId: 'c1', courtName: 'Center Court', estimatedDuration: 120, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'm18', drawId: 'd1', drawName: 'Men&apos;s Singles', roundName: 'Semifinals', scheduledDate: '2024-08-17', scheduledTime: '10:00', status: 'scheduled', estimatedDuration: 90, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'm19', drawId: 'd1', drawName: 'Men&apos;s Singles', roundName: 'Semifinals', scheduledDate: '2024-08-17', scheduledTime: '12:00', status: 'scheduled', estimatedDuration: 90, priority: 'high', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'm20', drawId: 'd1', drawName: 'Men&apos;s Singles', roundName: 'Final', scheduledDate: '2024-08-17', scheduledTime: '16:00', status: 'scheduled', courtId: 'c1', courtName: 'Center Court', estimatedDuration: 120, priority: 'high', createdAt: new Date(), updatedAt: new Date() }
-  ]
+  // Start with fresh tournament (unscheduled matches)
+  const matches = generateUnscheduledMatches()
 
-  const blockers: Blocker[] = [
-    { id: 'b1', courtId: 'c1', courtName: 'Center Court', date: '2024-08-15', startTime: '07:00', endTime: '08:00', title: 'Court Maintenance', description: 'Daily cleaning and net adjustment', type: 'maintenance', createdAt: new Date() },
-    { id: 'b2', courtId: 'c2', courtName: 'Court 2', date: '2024-08-15', startTime: '07:30', endTime: '08:30', title: 'Line Painting', description: 'Touch up court lines', type: 'maintenance', createdAt: new Date() },
-    { id: 'b3', courtId: 'c3', courtName: 'Court 3', date: '2024-08-15', startTime: '12:00', endTime: '13:00', title: 'VIP Practice Session', description: 'Reserved for sponsor demonstration', type: 'reserved', createdAt: new Date() },
-    { id: 'b4', courtId: 'c4', courtName: 'Indoor Court A', date: '2024-08-15', startTime: '16:00', endTime: '17:00', title: 'Equipment Check', description: 'Lighting and sound system testing', type: 'maintenance', createdAt: new Date() },
-    { id: 'b5', courtId: 'c5', courtName: 'Indoor Court B', date: '2024-08-16', startTime: '07:00', endTime: '08:00', title: 'Surface Inspection', description: 'Annual carpet inspection', type: 'maintenance', createdAt: new Date() },
-    { id: 'b6', courtId: 'c6', courtName: 'Practice Court', date: '2024-08-16', startTime: '17:00', endTime: '18:00', title: 'Junior Clinic', description: 'Kids tennis lesson - court unavailable', type: 'reserved', createdAt: new Date() },
-    { id: 'b7', courtId: 'c1', courtName: 'Center Court', date: '2024-08-17', startTime: '07:00', endTime: '09:00', title: 'TV Setup', description: 'Camera and broadcast equipment installation', type: 'maintenance', createdAt: new Date() },
-    { id: 'b8', courtId: 'c2', courtName: 'Court 2', date: '2024-08-17', startTime: '18:00', endTime: '19:00', title: 'Awards Ceremony Prep', description: 'Stage setup for closing ceremony', type: 'other', createdAt: new Date() },
-    { id: 'b9', courtId: 'c3', courtName: 'Court 3', date: '2024-08-17', startTime: '15:00', endTime: '16:00', title: 'Weather Protection', description: 'Court covering due to rain forecast', type: 'unavailable', createdAt: new Date() }
-  ]
+  // Simplified blockers - only keep essential demo data
+  const blockers: Blocker[] = []
 
   const draws: TournamentDraw[] = [
     { id: 'd1', name: 'Men&apos;s Singles', format: 'single-elimination', category: 'mens-singles', maxPlayers: 32, currentPlayers: 28, status: 'in-progress', prizeMoney: 10000, entryCost: 50 },
@@ -187,6 +209,14 @@ const tournamentReducer = (state: TournamentState, action: TournamentAction): To
     
     case 'CLEAR_CONFLICTS':
       return { ...state, conflicts: [] }
+    
+    case 'APPLY_SCHEDULE':
+      return { ...state, matches: action.payload }
+    
+    case 'RESET_SCHEDULE':
+      // Create fresh unscheduled matches to avoid reference issues
+      const freshMatches = generateUnscheduledMatches()
+      return { ...state, matches: freshMatches }
     
     default:
       return state
@@ -302,7 +332,16 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
     dispatch({ type: 'CLEAR_CONFLICTS' })
   }
 
-  const contextValue: TournamentContextType = {
+  const applySchedule = React.useCallback(() => {
+    const scheduledMatches = generateScheduledMatches()
+    dispatch({ type: 'APPLY_SCHEDULE', payload: scheduledMatches })
+  }, [])
+
+  const resetSchedule = React.useCallback(() => {
+    dispatch({ type: 'RESET_SCHEDULE' })
+  }, [])
+
+  const contextValue: TournamentContextType = React.useMemo(() => ({
     state,
     dispatch,
     setSelectedMatch,
@@ -317,8 +356,27 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
     updateCourt,
     deleteCourt,
     checkConflicts,
-    clearConflicts
-  }
+    clearConflicts,
+    applySchedule,
+    resetSchedule
+  }), [
+    state, 
+    setSelectedMatch,
+    setCurrentView,
+    setSelectedDate,
+    updateMatch,
+    updateMatchStatus,
+    moveMatch,
+    addBlocker,
+    removeBlocker,
+    addCourt,
+    updateCourt,
+    deleteCourt,
+    checkConflicts,
+    clearConflicts,
+    applySchedule,
+    resetSchedule
+  ])
 
   return (
     <TournamentContext.Provider value={contextValue}>

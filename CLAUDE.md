@@ -198,6 +198,32 @@ This repository implements a comprehensive tournament scheduling system with the
 - Global state management through `/contexts/TournamentContext.tsx`
 - Main tournament page at `/pages/tournament-scheduler.tsx`
 
+### White Page Issue Prevention
+**CRITICAL**: This application is prone to white page issues caused by React rendering conflicts and Next.js cache corruption. After EVERY code change, you MUST run one of these commands to prevent white pages:
+
+```bash
+# Option 1: Full reset (recommended after significant changes)
+npm run dev-clean
+
+# Option 2: Windows batch script (fastest)
+dev-restart.bat
+
+# Option 3: Manual steps
+rm -rf .next && rm -rf node_modules/.cache && npm cache clean --force && npm run dev
+
+# Option 4: Use different port if conflicts persist
+PORT=3013 npm run dev
+```
+
+**When to use**: After ANY change to React components, especially:
+- State management modifications
+- Component structure changes 
+- New hooks or context usage
+- TypeScript interface changes
+- Complex nested component updates
+
+The white page issue is recurring and MUST be addressed proactively with every development iteration.
+
 # important-instruction-reminders
 Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.
