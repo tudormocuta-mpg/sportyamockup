@@ -58,7 +58,8 @@ const MatchStatusTracker: React.FC = () => {
       'in-progress': 0,
       completed: 0,
       postponed: 0,
-      walkover: 0
+      walkover: 0,
+      unscheduled: 0
     }
 
     state.matches.forEach(match => {

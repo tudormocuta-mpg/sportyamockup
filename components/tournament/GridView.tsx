@@ -20,7 +20,7 @@ const GridView: React.FC = () => {
   // Get ordered courts
   const orderedCourts = courtOrder
     .map(id => state.courts.find(c => c.id === id))
-    .filter(Boolean)
+    .filter((court): court is NonNullable<typeof court> => Boolean(court))
 
   // Generate time slots from 8:00 to 20:00 with 30-minute intervals
   const generateTimeSlots = (): string[] => {
@@ -60,7 +60,10 @@ const GridView: React.FC = () => {
   // Get court availability from wizard data (mock data for demo)
   // This would normally come from a context or props
   const getCourtAvailability = () => {
-    const wizardCourtData = {
+    const wizardCourtData: Record<string, Array<{
+      courtId: string
+      timeSlots: Array<{startTime: string, endTime: string}>
+    }>> = {
       '2024-08-15': [
         {
           courtId: 'c3',

@@ -25,78 +25,24 @@ interface WizardStep {
 
 const ScheduleGenerationWizard: React.FC = () => {
   const tournamentContext = useTournament()
+  
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   const [currentStep, setCurrentStep] = useState(0)
-  
-  // Enhanced safety checks with loading states
-  if (!tournamentContext) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-purple-600 border-t-transparent mx-auto mb-4"></div>
-          <div className="text-gray-600">Loading tournament context...</div>
-        </div>
-      </div>
-    )
-  }
-
-  const { state, applySchedule, resetSchedule } = tournamentContext
-  
-  if (!state) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-purple-600 border-t-transparent mx-auto mb-4"></div>
-          <div className="text-gray-600">Loading tournament data...</div>
-        </div>
-      </div>
-    )
-  }
-  
-  if (!state.matches || !Array.isArray(state.matches)) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="text-red-600 mb-2">⚠️</div>
-          <div className="text-gray-600">Tournament data not available</div>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Reload Page
-          </button>
-        </div>
-      </div>
-    )
-  }
-  
-  // Check if this is a fresh tournament (no scheduled matches) - use useMemo to avoid recalculation
-  const isFreshTournament = React.useMemo(() => {
-    try {
-      return state.matches.every(match => !match.scheduledTime || !match.scheduledDate)
-    } catch (error) {
-      console.warn('Error checking fresh tournament status:', error)
-      return true
-    }
-  }, [state.matches])
-  
-  const hasGeneratedSchedule = React.useMemo(() => {
-    try {
-      return state.matches.some(match => match.scheduledTime && match.scheduledDate)
-    } catch (error) {
-      console.warn('Error checking generated schedule status:', error)
-      return false
-    }
-  }, [state.matches])
-  
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedOptions, setGeneratedOptions] = useState<ScheduleOption[]>([])
   const [selectedOption, setSelectedOption] = useState<string | null>(null)
-  
-  // Court configuration modal state - simplified initialization
   const [isCourtModalOpen, setIsCourtModalOpen] = useState(false)
-  const [courtModalData, setCourtModalData] = useState(null)
-  
-  // Drag & drop state for scheduling rules
+  const [courtModalData, setCourtModalData] = useState<{
+    date: string
+    courtId: string
+    courtName: string
+    surface: string
+    indoor: boolean
+    timeSlots: Array<{startTime: string, endTime: string}>
+    maintenanceBlocks: Array<{startTime: string, endTime: string, description: string}>
+    isEditing: boolean
+    editIndex?: number
+  } | null>(null)
   const [draggedItem, setDraggedItem] = useState<number | null>(null)
   const [dragOverItem, setDragOverItem] = useState<number | null>(null)
   
@@ -206,6 +152,7 @@ const ScheduleGenerationWizard: React.FC = () => {
     ]
   }))
 
+  // ALL MEMOIZED VALUES AND CALLBACKS - MUST BE BEFORE CONDITIONAL RETURNS
   const steps: WizardStep[] = React.useMemo(() => [
     {
       id: 'setup',
@@ -238,6 +185,115 @@ const ScheduleGenerationWizard: React.FC = () => {
       completed: false
     }
   ], [])
+
+  // Get context data safely
+  const { state, applySchedule, resetSchedule } = tournamentContext || {}
+
+  // Memoized values for tournament state checks
+  const isFreshTournament = React.useMemo(() => {
+    try {
+      if (!state?.matches) return true
+      return state.matches.every(match => !match.scheduledTime || !match.scheduledDate)
+    } catch (error) {
+      console.warn('Error checking fresh tournament status:', error)
+      return true
+    }
+  }, [state?.matches])
+  
+  const hasGeneratedSchedule = React.useMemo(() => {
+    try {
+      if (!state?.matches) return false
+      return state.matches.some(match => match.scheduledTime && match.scheduledDate)
+    } catch (error) {
+      console.warn('Error checking generated schedule status:', error)
+      return false
+    }
+  }, [state?.matches])
+
+  // Helper function to get tournament days
+  const getTournamentDays = React.useMemo(() => {
+    const start = new Date(wizardData.tournamentStart)
+    const end = new Date(wizardData.tournamentEnd)
+    const days = []
+    
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      days.push(new Date(d).toISOString().split('T')[0])
+    }
+    
+    return days
+  }, [wizardData.tournamentStart, wizardData.tournamentEnd])
+
+  const handleApplySchedule = React.useCallback(() => {
+    if (selectedOption && applySchedule) {
+      try {
+        // Apply the full scheduled mock data
+        applySchedule()
+        
+        // Component will automatically show success message because hasGeneratedSchedule will be true
+        // Reset step to show success message
+        setCurrentStep(0)
+      } catch (error) {
+        console.error('Error applying schedule:', error)
+      }
+    }
+  }, [selectedOption, applySchedule])
+
+  const handleResetSchedule = React.useCallback(() => {
+    if (resetSchedule) {
+      try {
+        // Reset all scheduled matches to unscheduled state
+        resetSchedule()
+        
+        // Reset wizard state
+        setCurrentStep(0)
+        setGeneratedOptions([])
+        setSelectedOption(null)
+        setIsGenerating(false)
+      } catch (error) {
+        console.error('Error resetting schedule:', error)
+      }
+    }
+  }, [resetSchedule])
+
+  // CONDITIONAL RETURNS AFTER ALL HOOKS
+  if (!tournamentContext) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-purple-600 border-t-transparent mx-auto mb-4"></div>
+          <div className="text-gray-600">Loading tournament context...</div>
+        </div>
+      </div>
+    )
+  }
+  
+  if (!state) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-purple-600 border-t-transparent mx-auto mb-4"></div>
+          <div className="text-gray-600">Loading tournament data...</div>
+        </div>
+      </div>
+    )
+  }
+  
+  if (!state.matches || !Array.isArray(state.matches)) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="text-red-600 mb-2">⚠️</div>
+          <div className="text-gray-600">Tournament data not available</div>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Reload Page
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   const generateScheduleOptions = async () => {
     setIsGenerating(true)
@@ -302,49 +358,6 @@ const ScheduleGenerationWizard: React.FC = () => {
     await generateScheduleOptions()
     nextStep()
   }
-
-  const handleApplySchedule = React.useCallback(() => {
-    if (selectedOption) {
-      try {
-        // Apply the full scheduled mock data
-        applySchedule()
-        
-        // Component will automatically show success message because hasGeneratedSchedule will be true
-        // Reset step to show success message
-        setCurrentStep(0)
-      } catch (error) {
-        console.error('Error applying schedule:', error)
-      }
-    }
-  }, [selectedOption, applySchedule])
-
-  const handleResetSchedule = React.useCallback(() => {
-    try {
-      // Reset all scheduled matches to unscheduled state
-      resetSchedule()
-      
-      // Reset wizard state
-      setCurrentStep(0)
-      setGeneratedOptions([])
-      setSelectedOption(null)
-      setIsGenerating(false)
-    } catch (error) {
-      console.error('Error resetting schedule:', error)
-    }
-  }, [resetSchedule])
-
-  // Helper function to get tournament days
-  const getTournamentDays = React.useMemo(() => {
-    const start = new Date(wizardData.tournamentStart)
-    const end = new Date(wizardData.tournamentEnd)
-    const days = []
-    
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      days.push(new Date(d).toISOString().split('T')[0])
-    }
-    
-    return days
-  }, [wizardData.tournamentStart, wizardData.tournamentEnd])
 
   // Helper function to open court configuration modal
   const openCourtModal = (date: string, courtId: string, isEditing: boolean = false, editIndex?: number) => {
