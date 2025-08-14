@@ -24,26 +24,119 @@
 @layer components {
   /* Tournament-specific styles */
   .tournament-grid {
-    @apply min-w-full table-fixed border-collapse;
+    @apply min-w-full table-fixed border-collapse shadow-sm rounded-lg overflow-hidden;
   }
   
   .court-cell {
-    @apply relative border border-gray-300 bg-white hover:bg-gray-50 transition-colors duration-150;
+    @apply relative border border-gray-200 bg-white hover:bg-gray-50 transition-all duration-200;
   }
   
   .match-card {
-    @apply absolute inset-1 bg-blue-100 border-2 border-blue-300 rounded-lg p-2 cursor-pointer hover:bg-blue-200 transition-colors duration-150;
+    @apply absolute inset-1 rounded-lg p-2 cursor-pointer transition-all duration-200 transform hover:scale-105 hover:shadow-md;
   }
   
   .blocker-card {
-    @apply absolute inset-1 bg-red-100 border-2 border-red-300 rounded-lg p-2 cursor-pointer hover:bg-red-200 transition-colors duration-150;
+    @apply absolute inset-1 rounded-lg p-2 cursor-pointer transition-all duration-200 opacity-90;
   }
   
   .drag-over {
-    @apply bg-green-100 border-green-400;
+    @apply bg-green-100 border-green-400 shadow-lg;
   }
   
   .drag-invalid {
-    @apply bg-red-100 border-red-400;
+    @apply bg-red-100 border-red-400 shadow-inner;
+  }
+  
+  /* Enhanced visual feedback */
+  .grid-view-container {
+    @apply bg-gradient-to-br from-gray-50 to-white;
+  }
+  
+  .list-view-container {
+    @apply bg-gradient-to-br from-gray-50 to-white;
+  }
+  
+  .timeline-view {
+    @apply bg-gradient-to-br from-gray-50 to-white;
+  }
+  
+  /* Loading animations */
+  .loading-shimmer {
+    @apply bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse;
+  }
+  
+  /* Status indicators */
+  .status-indicator {
+    @apply inline-block w-2 h-2 rounded-full mr-1;
+  }
+  
+  .status-scheduled {
+    @apply bg-blue-500;
+  }
+  
+  .status-in-progress {
+    @apply bg-green-500 animate-pulse;
+  }
+  
+  .status-completed {
+    @apply bg-gray-400;
+  }
+  
+  .status-postponed {
+    @apply bg-yellow-500;
+  }
+  
+  /* Priority indicators */
+  .priority-high {
+    @apply border-l-4 border-red-500;
+  }
+  
+  .priority-medium {
+    @apply border-l-4 border-yellow-500;
+  }
+  
+  .priority-low {
+    @apply border-l-4 border-green-500;
+  }
+  
+  /* Conflict indicators */
+  .conflict-warning {
+    @apply bg-red-50 border-red-200 text-red-800;
+  }
+  
+  .conflict-error {
+    @apply bg-red-100 border-red-300 text-red-900;
+  }
+  
+  /* Tournament navigation */
+  .tournament-nav {
+    @apply border-b border-gray-200 bg-white shadow-sm;
+  }
+  
+  .tournament-nav-tab {
+    @apply px-6 py-3 text-sm font-medium text-gray-700 border-b-2 border-transparent hover:border-blue-300 hover:text-blue-600 transition-all duration-200;
+  }
+  
+  .tournament-nav-tab.active {
+    @apply text-blue-600 border-blue-500 bg-blue-50;
+  }
+  
+  /* Card hover effects */
+  .hover-lift {
+    @apply transition-transform duration-200 hover:transform hover:-translate-y-1 hover:shadow-lg;
+  }
+  
+  /* Custom scrollbars */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-gray-100 rounded;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-gray-400 rounded hover:bg-gray-500;
   }
 }
