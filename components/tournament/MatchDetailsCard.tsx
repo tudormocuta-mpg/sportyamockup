@@ -146,7 +146,7 @@ const MatchDetailsCard: React.FC<MatchDetailsCardProps> = ({ match }) => {
             {isEditing ? (
               <select
                 value={editForm.priority}
-                onChange={(e) => setEditForm(prev => ({ ...prev, priority: e.target.value }))}
+                onChange={(e) => setEditForm(prev => ({ ...prev, priority: e.target.value as 'high' | 'medium' | 'low' }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
               >
                 <option value="high">High</option>

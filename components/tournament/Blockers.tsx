@@ -24,7 +24,7 @@ const Blockers: React.FC = () => {
 
   // Get available dates
   const availableDates = useMemo(() => {
-    const dates = [...new Set(state.blockers.map(b => b.date))]
+    const dates = Array.from(new Set(state.blockers.map(b => b.date)))
     return dates.sort()
   }, [state.blockers])
 

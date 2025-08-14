@@ -251,11 +251,13 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
             if (!playerSchedule.has(playerId)) {
               playerSchedule.set(playerId, [])
             }
-            playerSchedule.get(playerId)!.push({
-              matchId: match.id,
-              time: match.scheduledTime,
-              date: match.scheduledDate
-            })
+            if (match.scheduledTime && match.scheduledDate) {
+              playerSchedule.get(playerId)!.push({
+                matchId: match.id,
+                time: match.scheduledTime,
+                date: match.scheduledDate
+              })
+            }
           }
         })
       }

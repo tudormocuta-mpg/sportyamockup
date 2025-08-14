@@ -12,7 +12,7 @@ const MatchStatusTracker: React.FC = () => {
 
   // Get available dates
   const availableDates = useMemo(() => {
-    const dates = [...new Set(state.matches.map(m => m.scheduledDate).filter(Boolean))]
+    const dates = Array.from(new Set(state.matches.map(m => m.scheduledDate).filter(Boolean)))
     return dates.sort()
   }, [state.matches])
 
@@ -197,7 +197,7 @@ const MatchStatusTracker: React.FC = () => {
                 <option value="all">All Dates</option>
                 {availableDates.map(date => (
                   <option key={date} value={date}>
-                    {new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                    {date ? new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : date}
                   </option>
                 ))}
               </select>
