@@ -101,7 +101,7 @@ export interface ScheduleConflict {
 }
 
 // View and UI related types
-export type ViewMode = 'grid' | 'list' | 'timeline'
+export type ViewMode = 'grid' | 'list' | 'timeline' | 'draw'
 
 export interface GridViewProps {
   matches: Match[]
