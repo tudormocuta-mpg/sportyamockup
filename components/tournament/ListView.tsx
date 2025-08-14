@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import { useTournament } from '../../contexts/TournamentContext'
 import { Match, MatchStatus } from '../../types/tournament'
-import { ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
+import { ChevronUpIcon, ChevronDownIcon, MagnifyingGlassIcon, FunnelIcon, ArrowPathIcon, CheckCircleIcon, ClockIcon, PlayIcon, PauseIcon, ExclamationTriangleIcon, MapPinIcon } from '@heroicons/react/24/outline'
 
 type SortField = 'time' | 'court' | 'draw' | 'players' | 'status' | 'priority'
 type SortDirection = 'asc' | 'desc'
@@ -170,218 +170,345 @@ const ListView: React.FC = () => {
   }
 
   return (
-    <div className="list-view-container h-full flex flex-col">
-      {/* Filters and Search */}
-      <div className="bg-white p-4 border-b border-gray-200 space-y-4">
-        <div className="flex flex-wrap gap-4 items-center">
-          <input
-            type="text"
-            placeholder="Search matches..."
-            className="flex-1 min-w-64 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value as MatchStatus | 'all')}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">All Statuses</option>
-            <option value="scheduled">Scheduled</option>
-            <option value="in-progress">In Progress</option>
-            <option value="completed">Completed</option>
-            <option value="postponed">Postponed</option>
-            <option value="walkover">Walkover</option>
-          </select>
-
-          <select
-            value={filterDraw}
-            onChange={(e) => setFilterDraw(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">All Draws</option>
-            {state.draws.map(draw => (
-              <option key={draw.id} value={draw.id}>{draw.name}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Bulk Operations */}
-        {selectedMatches.size > 0 && (
-          <div className="flex flex-wrap gap-2 items-center bg-blue-50 p-3 rounded-lg">
-            <span className="text-sm font-medium text-blue-900">
-              {selectedMatches.size} match{selectedMatches.size !== 1 ? 'es' : ''} selected:
-            </span>
-            
-            <button
-              onClick={() => handleBulkStatusChange('scheduled')}
-              className="px-3 py-1 bg-blue-100 text-blue-800 rounded text-sm hover:bg-blue-200 transition-colors"
-            >
-              Mark Scheduled
-            </button>
-            
-            <button
-              onClick={() => handleBulkStatusChange('postponed')}
-              className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded text-sm hover:bg-yellow-200 transition-colors"
-            >
-              Mark Postponed
-            </button>
-            
-            <select
-              onChange={(e) => {
-                if (e.target.value) {
-                  handleBulkCourtAssignment(e.target.value)
-                  e.target.value = ''
-                }
-              }}
-              className="px-2 py-1 border border-gray-300 rounded text-sm"
-              defaultValue=""
-            >
-              <option value="">Assign Court...</option>
-              {state.courts.map(court => (
-                <option key={court.id} value={court.id}>{court.name}</option>
-              ))}
-            </select>
-            
-            <button
-              onClick={() => setSelectedMatches(new Set())}
-              className="px-3 py-1 bg-gray-100 text-gray-800 rounded text-sm hover:bg-gray-200 transition-colors"
-            >
-              Clear Selection
-            </button>
+    <div className="list-view-container h-full flex flex-col bg-gradient-to-br from-gray-50 to-white">
+      {/* Enhanced Filters and Search */}
+      <div className="bg-white shadow-sm border-b border-gray-200">
+        {/* Header Stats */}
+        <div className="px-6 py-3 bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-100">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+                <span className="text-sm font-medium text-gray-700">Total: {filteredAndSortedMatches.length} matches</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <CheckCircleIcon className="w-4 h-4 text-green-600" />
+                <span className="text-sm text-gray-600">{filteredAndSortedMatches.filter(m => m.status === 'completed').length} completed</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <PlayIcon className="w-4 h-4 text-blue-600" />
+                <span className="text-sm text-gray-600">{filteredAndSortedMatches.filter(m => m.status === 'in-progress').length} in progress</span>
+              </div>
+            </div>
+            <div className="text-sm text-gray-500">
+              Showing results for {new Date(state.selectedDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+            </div>
           </div>
-        )}
+        </div>
+        
+        {/* Enhanced Search and Filters */}
+        <div className="p-6 space-y-4">
+          <div className="flex flex-wrap gap-4 items-center">
+            <div className="relative flex-1 min-w-80">
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search players, courts, or match details..."
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            
+            <div className="flex items-center space-x-3">
+              <div className="relative">
+                <FunnelIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value as MatchStatus | 'all')}
+                  className="pl-9 pr-8 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm font-medium"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="scheduled">Scheduled</option>
+                  <option value="in-progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                  <option value="postponed">Postponed</option>
+                  <option value="walkover">Walkover</option>
+                </select>
+              </div>
+
+              <select
+                value={filterDraw}
+                onChange={(e) => setFilterDraw(e.target.value)}
+                className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm font-medium"
+              >
+                <option value="all">All Draws</option>
+                {state.draws.map(draw => (
+                  <option key={draw.id} value={draw.id}>{draw.name}</option>
+                ))}
+              </select>
+              
+              <button
+                onClick={() => {
+                  setSearchTerm('')
+                  setFilterStatus('all')
+                  setFilterDraw('all')
+                  setSelectedMatches(new Set())
+                }}
+                className="px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium flex items-center space-x-2"
+                title="Clear all filters"
+              >
+                <ArrowPathIcon className="w-4 h-4" />
+                <span>Reset</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Enhanced Bulk Operations */}
+          {selectedMatches.size > 0 && (
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-xl p-4 shadow-sm">
+              <div className="flex flex-wrap gap-3 items-center">
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold text-sm">
+                    {selectedMatches.size}
+                  </div>
+                  <span className="text-sm font-bold text-blue-900">
+                    {selectedMatches.size === 1 ? 'match' : 'matches'} selected
+                  </span>
+                </div>
+                
+                <div className="h-6 w-px bg-blue-300"></div>
+                
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => handleBulkStatusChange('scheduled')}
+                    className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all duration-200 text-sm font-medium flex items-center space-x-1 hover:scale-105 shadow-sm"
+                  >
+                    <ClockIcon className="w-4 h-4" />
+                    <span>Schedule</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => handleBulkStatusChange('in-progress')}
+                    className="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all duration-200 text-sm font-medium flex items-center space-x-1 hover:scale-105 shadow-sm"
+                  >
+                    <PlayIcon className="w-4 h-4" />
+                    <span>Start</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => handleBulkStatusChange('postponed')}
+                    className="px-3 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-all duration-200 text-sm font-medium flex items-center space-x-1 hover:scale-105 shadow-sm"
+                  >
+                    <PauseIcon className="w-4 h-4" />
+                    <span>Postpone</span>
+                  </button>
+                  
+                  <select
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        handleBulkCourtAssignment(e.target.value)
+                        e.target.value = ''
+                      }
+                    }}
+                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium bg-white shadow-sm hover:border-gray-400 transition-colors"
+                    defaultValue=""
+                  >
+                    <option value="">Assign Court...</option>
+                    {state.courts.map(court => (
+                      <option key={court.id} value={court.id}>{court.name} ({court.surface})</option>
+                    ))}
+                  </select>
+                  
+                  <button
+                    onClick={() => setSelectedMatches(new Set())}
+                    className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-all duration-200 text-sm font-medium hover:scale-105 shadow-sm"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Table */}
-      <div className="flex-1 overflow-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50 sticky top-0 z-10">
+      {/* Enhanced Table */}
+      <div className="flex-1 overflow-auto custom-scrollbar">
+        <table className="min-w-full divide-y divide-gray-200 bg-white shadow-sm">
+          <thead className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 z-10 shadow-sm">
             <tr>
-              <th className="px-4 py-3 text-left">
+              <th className="px-6 py-4 text-left">
                 <input
                   type="checkbox"
                   checked={selectedMatches.size === filteredAndSortedMatches.length && filteredAndSortedMatches.length > 0}
                   onChange={(e) => handleSelectAll(e.target.checked)}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
                 />
               </th>
               
               <th 
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200 transition-colors border-r border-gray-200 flex items-center space-x-1"
                 onClick={() => handleSort('time')}
               >
-                Time <SortIcon field="time" />
+                <ClockIcon className="w-4 h-4" />
+                <span>Time</span>
+                <SortIcon field="time" />
               </th>
               
               <th 
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200 transition-colors border-r border-gray-200"
                 onClick={() => handleSort('court')}
               >
-                Court <SortIcon field="court" />
+                <div className="flex items-center space-x-1">
+                  <MapPinIcon className="w-4 h-4" />
+                  <span>Court</span>
+                  <SortIcon field="court" />
+                </div>
               </th>
               
               <th 
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200 transition-colors border-r border-gray-200"
                 onClick={() => handleSort('draw')}
               >
-                Draw <SortIcon field="draw" />
+                <div className="flex items-center space-x-1">
+                  <span>🏆</span>
+                  <span>Draw</span>
+                  <SortIcon field="draw" />
+                </div>
               </th>
               
               <th 
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200 transition-colors border-r border-gray-200"
                 onClick={() => handleSort('players')}
               >
-                Players <SortIcon field="players" />
+                <div className="flex items-center space-x-1">
+                  <span>👥</span>
+                  <span>Players</span>
+                  <SortIcon field="players" />
+                </div>
               </th>
               
               <th 
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200 transition-colors border-r border-gray-200"
                 onClick={() => handleSort('status')}
               >
-                Status <SortIcon field="status" />
+                <div className="flex items-center space-x-1">
+                  <span>Status</span>
+                  <SortIcon field="status" />
+                </div>
               </th>
               
               <th 
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200 transition-colors border-r border-gray-200"
                 onClick={() => handleSort('priority')}
               >
-                Priority <SortIcon field="priority" />
+                <div className="flex items-center space-x-1">
+                  <ExclamationTriangleIcon className="w-4 h-4" />
+                  <span>Priority</span>
+                  <SortIcon field="priority" />
+                </div>
               </th>
               
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
           </thead>
           
-          <tbody className="bg-white divide-y divide-gray-200">
-            {filteredAndSortedMatches.map((match) => (
+          <tbody className="bg-white divide-y divide-gray-100">
+            {filteredAndSortedMatches.map((match, index) => (
               <tr 
                 key={match.id} 
-                className={`hover:bg-gray-50 ${selectedMatches.has(match.id) ? 'bg-blue-50' : ''}`}
+                className={`hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all duration-200 cursor-pointer group ${
+                  selectedMatches.has(match.id) 
+                    ? 'bg-gradient-to-r from-blue-100 to-purple-100 shadow-sm' 
+                    : index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
+                }`}
                 onClick={() => setSelectedMatch(match)}
               >
-                <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
+                <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="checkbox"
                     checked={selectedMatches.has(match.id)}
                     onChange={(e) => handleRowSelect(match.id, e.target.checked)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
                   />
                 </td>
                 
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {match.scheduledTime || 'TBD'}
-                </td>
-                
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {match.courtName || 'TBD'}
-                </td>
-                
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                  <div>
-                    <div className="font-medium">{match.drawName}</div>
-                    <div className="text-gray-500">{match.roundName}</div>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center space-x-2">
+                    <ClockIcon className="w-4 h-4 text-blue-500" />
+                    <span className="text-sm font-bold text-gray-900">
+                      {match.scheduledTime || 'TBD'}
+                    </span>
                   </div>
                 </td>
                 
-                <td className="px-4 py-4 text-sm text-gray-900">
-                  <div className="max-w-48">
-                    {formatPlayers(match)}
-                    {match.isDoubles && (
-                      <span className="ml-2 text-xs text-gray-500">(Doubles)</span>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center space-x-2">
+                    <MapPinIcon className="w-4 h-4 text-green-500" />
+                    <div>
+                      <div className="text-sm font-bold text-gray-900">{match.courtName || 'TBD'}</div>
+                      {match.courtName && (
+                        <div className="text-xs text-gray-500">
+                          {state.courts.find(c => c.id === match.courtId)?.surface} • 
+                          {state.courts.find(c => c.id === match.courtId)?.indoor ? '🏠 Indoor' : '🌤️ Outdoor'}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </td>
+                
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-xs">
+                      🏆
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold text-gray-900">{match.drawName}</div>
+                      <div className="text-xs text-gray-600 font-medium">{match.roundName}</div>
+                    </div>
+                  </div>
+                </td>
+                
+                <td className="px-6 py-4">
+                  <div className="max-w-52">
+                    <div className="text-sm font-bold text-gray-900">{formatPlayers(match)}</div>
+                    <div className="flex items-center space-x-2 mt-1">
+                      {match.isDoubles && (
+                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">Doubles</span>
+                      )}
+                      {match.estimatedDuration && (
+                        <span className="text-xs text-gray-500">⏱️ {match.estimatedDuration}min</span>
+                      )}
+                    </div>
+                  </div>
+                </td>
+                
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="space-y-2">
+                    <span className={`${getStatusBadge(match.status)} flex items-center space-x-1`}>
+                      {match.status === 'in-progress' && <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>}
+                      {match.status === 'completed' && <CheckCircleIcon className="w-3 h-3" />}
+                      {match.status === 'scheduled' && <ClockIcon className="w-3 h-3" />}
+                      {match.status === 'postponed' && <PauseIcon className="w-3 h-3" />}
+                      <span className="capitalize font-bold">{match.status.replace('-', ' ')}</span>
+                    </span>
+                    {match.score && (
+                      <div className="text-xs font-mono bg-gray-100 px-2 py-1 rounded border">{match.score}</div>
                     )}
                   </div>
                 </td>
                 
-                <td className="px-4 py-4 whitespace-nowrap">
-                  <span className={getStatusBadge(match.status)}>
-                    {match.status}
-                  </span>
-                  {match.score && (
-                    <div className="text-xs text-gray-500 mt-1">{match.score}</div>
-                  )}
-                </td>
-                
-                <td className="px-4 py-4 whitespace-nowrap">
-                  <span className={getPriorityBadge(match.priority)}>
-                    {match.priority || 'normal'}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`${getPriorityBadge(match.priority)} flex items-center space-x-1`}>
+                    {match.priority === 'high' && <ExclamationTriangleIcon className="w-3 h-3" />}
+                    <span className="capitalize font-bold">{match.priority || 'normal'}</span>
                   </span>
                 </td>
                 
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500" onClick={(e) => e.stopPropagation()}>
+                <td className="px-6 py-4 whitespace-nowrap text-sm" onClick={(e) => e.stopPropagation()}>
                   <select
                     value={match.status}
                     onChange={(e) => updateMatchStatus(match.id, e.target.value as MatchStatus)}
-                    className="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-xs border-2 border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium hover:border-gray-400 transition-colors"
                   >
-                    <option value="scheduled">Scheduled</option>
-                    <option value="in-progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                    <option value="postponed">Postponed</option>
-                    <option value="walkover">Walkover</option>
+                    <option value="scheduled">📅 Scheduled</option>
+                    <option value="in-progress">▶️ In Progress</option>
+                    <option value="completed">✅ Completed</option>
+                    <option value="postponed">⏸️ Postponed</option>
+                    <option value="walkover">🚫 Walkover</option>
                   </select>
                 </td>
               </tr>
@@ -390,15 +517,31 @@ const ListView: React.FC = () => {
         </table>
       </div>
 
-      {/* Summary */}
-      <div className="bg-gray-50 px-4 py-3 border-t border-gray-200">
-        <div className="flex justify-between items-center text-sm text-gray-600">
-          <span>
-            Showing {filteredAndSortedMatches.length} of {state.matches.filter(m => m.scheduledDate === state.selectedDate).length} matches
-          </span>
-          <span>
-            {selectedMatches.size > 0 && `${selectedMatches.size} selected`}
-          </span>
+      {/* Enhanced Summary */}
+      <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-t border-gray-200 shadow-inner">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center space-x-6 text-sm">
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+              <span className="font-medium text-gray-700">
+                Showing <span className="font-bold text-blue-600">{filteredAndSortedMatches.length}</span> of <span className="font-bold">{state.matches.filter(m => m.scheduledDate === state.selectedDate).length}</span> matches
+              </span>
+            </div>
+            {selectedMatches.size > 0 && (
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                <span className="font-medium text-purple-700">
+                  <span className="font-bold">{selectedMatches.size}</span> selected
+                </span>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex items-center space-x-4 text-xs text-gray-500">
+            <span>Updated: {new Date().toLocaleTimeString()}</span>
+            <span>•</span>
+            <span>View: List</span>
+          </div>
         </div>
       </div>
     </div>
