@@ -1,4 +1,5 @@
 import Head from 'next/head'
+import ErrorBoundary from '../components/ErrorBoundary'
 import TournamentLayout from '../components/tournament/TournamentLayout'
 
 export default function TournamentScheduler() {
@@ -11,9 +12,11 @@ export default function TournamentScheduler() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <div className="tournament-scheduler h-screen overflow-hidden">
-        <TournamentLayout />
-      </div>
+      <ErrorBoundary>
+        <div className="tournament-scheduler h-screen overflow-hidden">
+          <TournamentLayout />
+        </div>
+      </ErrorBoundary>
     </>
   )
 }
