@@ -154,8 +154,7 @@ const Configuration: React.FC = () => {
         {activeTab === 'wizard' ? (
           <ScheduleGenerationWizard />
         ) : (
-          <div>
-
+        <>
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Match Scheduling Configuration */}
           <div className="bg-white rounded-lg shadow p-6">
@@ -463,6 +462,8 @@ const Configuration: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
+        </>
         )}
       </div>
     </div>
