@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body {
+    padding: 0;
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
+      Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+}
+
+@layer components {
+  /* Tournament-specific styles */
+  .tournament-grid {
+    @apply min-w-full table-fixed border-collapse;
+  }
+  
+  .court-cell {
+    @apply relative border border-gray-300 bg-white hover:bg-gray-50 transition-colors duration-150;
+  }
+  
+  .match-card {
+    @apply absolute inset-1 bg-blue-100 border-2 border-blue-300 rounded-lg p-2 cursor-pointer hover:bg-blue-200 transition-colors duration-150;
+  }
+  
+  .blocker-card {
+    @apply absolute inset-1 bg-red-100 border-2 border-red-300 rounded-lg p-2 cursor-pointer hover:bg-red-200 transition-colors duration-150;
+  }
+  
+  .drag-over {
+    @apply bg-green-100 border-green-400;
+  }
+  
+  .drag-invalid {
+    @apply bg-red-100 border-red-400;
+  }
+}
