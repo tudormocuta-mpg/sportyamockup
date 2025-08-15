@@ -108,14 +108,14 @@ const Export: React.FC = () => {
   }
 
   return (
-    <div className="export-container h-full overflow-auto bg-gray-50">
-      <div className="max-w-6xl mx-auto p-6 space-y-6">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow p-6">
+    <div className="export-container h-full flex flex-col bg-gray-50">
+      {/* Header - Fixed */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-2xl font-bold text-gray-900">Export Tournament Data</h2>
-              <p className="text-gray-600 mt-2">Generate reports and export tournament information in various formats</p>
+              <p className="text-gray-600 mt-1">Generate reports and export tournament information in various formats</p>
             </div>
             <div className="text-right text-sm text-gray-500">
               <div>Estimated size: <span className="font-medium">{getEstimatedSize()}</span></div>
@@ -123,13 +123,49 @@ const Export: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Export Configuration */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Format Selection */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Export Format</h3>
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full max-w-6xl mx-auto p-6">
+          <div className="h-full grid lg:grid-cols-3 gap-6">
+            {/* Export Configuration - Scrollable */}
+            <div className="lg:col-span-2 space-y-6 overflow-y-auto pr-2">
+              {/* Quick Export Templates */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Templates</h3>
+                <p className="text-sm text-gray-600 mb-4">Select a pre-configured template or customize options below</p>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { name: 'Complete Schedule', desc: 'All matches with details', format: 'pdf' },
+                    { name: 'Player List', desc: 'Contact info only', format: 'excel' },
+                    { name: 'Results Report', desc: 'Completed matches', format: 'pdf' },
+                    { name: 'Calendar Import', desc: 'Match times only', format: 'ical' }
+                  ].map(template => (
+                    <button
+                      key={template.name}
+                      className="text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
+                      onClick={() => {
+                        // Set template-specific options
+                        setExportOptions(prev => ({
+                          ...prev,
+                          format: template.format as ExportOptions['format'],
+                          includePlayerDetails: template.name === 'Player List',
+                          includeScores: template.name === 'Results Report'
+                        }))
+                      }}
+                    >
+                      <div className="font-medium text-gray-900">{template.name}</div>
+                      <div className="text-xs text-gray-600 mt-1">{template.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Format Selection */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Export Format</h3>
               
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {[
@@ -283,8 +319,8 @@ const Export: React.FC = () => {
             </div>
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
+            {/* Sidebar - Sticky */}
+            <div className="space-y-6 lg:sticky lg:top-0 h-fit">
             {/* Export Action */}
             <div className="bg-white rounded-lg shadow p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Generate Export</h3>
@@ -318,36 +354,6 @@ const Export: React.FC = () => {
               </div>
             </div>
 
-            {/* Quick Export Templates */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Templates</h3>
-              
-              <div className="space-y-2">
-                {[
-                  { name: 'Complete Schedule', desc: 'All matches with details', format: 'pdf' },
-                  { name: 'Player List', desc: 'Contact info only', format: 'excel' },
-                  { name: 'Results Report', desc: 'Completed matches', format: 'pdf' },
-                  { name: 'Calendar Import', desc: 'Match times only', format: 'ical' }
-                ].map(template => (
-                  <button
-                    key={template.name}
-                    className="w-full text-left p-3 bg-gray-50 rounded hover:bg-gray-100 transition-colors"
-                    onClick={() => {
-                      // Set template-specific options
-                      setExportOptions(prev => ({
-                        ...prev,
-                        format: template.format as ExportOptions['format'],
-                        includePlayerDetails: template.name === 'Player List',
-                        includeScores: template.name === 'Results Report'
-                      }))
-                    }}
-                  >
-                    <div className="font-medium text-gray-900">{template.name}</div>
-                    <div className="text-sm text-gray-600">{template.desc}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
 
             {/* Export History */}
             <div className="bg-white rounded-lg shadow p-6">
@@ -366,6 +372,7 @@ const Export: React.FC = () => {
                   </div>
                 ))}
               </div>
+            </div>
             </div>
           </div>
         </div>

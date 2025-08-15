@@ -229,6 +229,11 @@ The white page issue is recurring and MUST be addressed proactively with every d
 - Repository: https://bitbucket.org/mpgro/sportyamockup
 - Main entry point: /pages/tournament-scheduler.tsx
 
+### Git Configuration
+- **IMPORTANT**: All commits and pushes to the repository must be authored with email: tudor.mocuta@sportya.net
+- Set git config before committing: `git config user.email "tudor.mocuta@sportya.net"`
+- Set git config user name: `git config user.name "Tudor Mocuta"`
+
 # important-instruction-reminders
 Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.

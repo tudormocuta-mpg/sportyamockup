@@ -75,7 +75,7 @@ const generateScheduledMatches = (): Match[] => [
   { id: 'm22', drawId: 'd2', drawName: 'Level 6 - Singles - Eliminatory', roundName: 'Qualifiers', gameType: 'Singles', player1Id: 'p19', player1Name: 'Maria Lopez', player2Id: 'p20', player2Name: 'Jenny Park', courtId: 'c4', courtName: 'Indoor Court A', scheduledDate: '2024-08-15', scheduledTime: '12:30', status: 'scheduled', estimatedDuration: 90, createdAt: new Date(), updatedAt: new Date() },
   { id: 'm23', drawId: 'd3', drawName: 'Level 7 - Doubles - Groups', roundName: 'Group A', gameType: 'Doubles', player1Name: 'Chen/Lopez', player2Name: 'Martin/Park', courtId: 'c5', courtName: 'Indoor Court B', scheduledDate: '2024-08-15', scheduledTime: '17:00', status: 'scheduled', estimatedDuration: 120, createdAt: new Date(), updatedAt: new Date() },
   { id: 'm24', drawId: 'd1', drawName: 'Level 5 - Singles - Eliminatory', roundName: 'Qualifiers', gameType: 'Singles', player1Id: 'p21', player1Name: 'Carlos Rivera', player2Id: 'p22', player2Name: 'Tom Wilson', courtId: 'c1', courtName: 'Center Court', scheduledDate: '2024-08-15', scheduledTime: '13:30', status: 'completed', score: '7-5, 6-3', result: '7-5, 6-3', estimatedDuration: 90, createdAt: new Date(), updatedAt: new Date() },
-  { id: 'm25', drawId: 'd2', drawName: 'Level 6 - Singles - Eliminatory', roundName: 'Qualifiers', gameType: 'Singles', player1Id: 'p23', player1Name: 'Anna Schmidt', player2Id: 'p24', player2Name: 'Kate Brown', courtId: 'c2', courtName: 'Court 2', scheduledDate: '2024-08-15', scheduledTime: '14:30', status: 'scheduled', estimatedDuration: 90, createdAt: new Date(), updatedAt: new Date() },
+  { id: 'm25', drawId: 'd2', drawName: 'Level 6 - Singles - Eliminatory', roundName: 'Qualifiers', gameType: 'Singles', player1Id: 'p23', player1Name: 'Anna Schmidt', player2Id: 'p24', player2Name: 'Kate Brown', courtId: 'c2', courtName: 'Court 2', scheduledDate: '2024-08-15', scheduledTime: '17:30', status: 'scheduled', estimatedDuration: 90, createdAt: new Date(), updatedAt: new Date() },
   
   // Additional matches for August 16th
   { id: 'm26', drawId: 'd2', drawName: 'Level 6 - Singles - Eliminatory', roundName: 'Semi-finals', gameType: 'Singles', player1Name: 'TBD', player2Name: 'TBD', courtId: 'c5', courtName: 'Indoor Court B', scheduledDate: '2024-08-16', scheduledTime: '09:00', status: 'scheduled', estimatedDuration: 90, createdAt: new Date(), updatedAt: new Date() },
@@ -155,19 +155,66 @@ const generateMockData = (): TournamentState => {
     { id: 'd5', name: 'Level 6 - Doubles - Eliminatory', level: 6, drawModel: 'Eliminatory', restrictions: ['Age over 18', 'Premium accounts only'], format: 'single-elimination', category: 'mixed-doubles', maxPlayers: 16, currentPlayers: 10, status: 'open', prizeMoney: 4000, entryCost: 60 }
   ]
 
+  // Generate initial demo logs
+  const logs = [
+    {
+      id: 'log_init_1',
+      timestamp: new Date(Date.now() - 3600000), // 1 hour ago
+      actionType: 'schedule_generated' as const,
+      severity: 'success' as const,
+      title: 'Initial Schedule Generated',
+      description: 'Tournament schedule created with 20 matches across 6 courts',
+      details: {
+        metadata: {
+          totalMatches: 20,
+          scheduledMatches: 0,
+          courtsUsed: 6
+        }
+      }
+    },
+    {
+      id: 'log_init_2',
+      timestamp: new Date(Date.now() - 1800000), // 30 minutes ago
+      actionType: 'configuration_changed' as const,
+      severity: 'info' as const,
+      title: 'Configuration Updated',
+      description: 'Match duration changed from 90 to 60 minutes',
+      details: {
+        before: { defaultMatchDuration: 90 },
+        after: { defaultMatchDuration: 60 }
+      }
+    },
+    {
+      id: 'log_init_3',
+      timestamp: new Date(Date.now() - 900000), // 15 minutes ago
+      actionType: 'court_modified' as const,
+      severity: 'warning' as const,
+      title: 'Court Status Changed',
+      description: 'Court 3 marked as unavailable for maintenance',
+      details: {
+        courtId: 'c3',
+        before: { available: true },
+        after: { available: false }
+      }
+    }
+  ]
+
   return {
     players,
     courts,
     matches,
     blockers,
     draws,
+    logs,
     selectedMatch: null,
     conflicts: [],
     currentView: 'grid',
     selectedDate: '2024-08-15',
     loading: false,
     error: null,
-    lastRefreshTime: null
+    lastRefreshTime: null,
+    scheduleStatus: 'private',
+    lastPublishedAt: null
   }
 }
 
@@ -189,15 +236,60 @@ const tournamentReducer = (state: TournamentState, action: TournamentAction): To
     case 'SET_SELECTED_DATE':
       return { ...state, selectedDate: action.payload }
     
-    case 'UPDATE_MATCH':
+    case 'UPDATE_MATCH': {
+      const match = state.matches.find(m => m.id === action.payload.matchId)
+      const updatedMatch = match ? { ...match, ...action.payload.updates, updatedAt: new Date() } : null
+      
+      // Determine log type based on what was updated
+      let logType: TournamentAction['type'] = 'UPDATE_MATCH'
+      let logTitle = 'Match Updated'
+      let logDescription = ''
+      
+      if (action.payload.updates.score && action.payload.updates.score !== match?.score) {
+        logType = 'UPDATE_MATCH'
+        logTitle = 'Score Entered'
+        logDescription = `Score updated for ${match?.player1Name} vs ${match?.player2Name}: ${action.payload.updates.score}`
+      } else if (action.payload.updates.scheduledTime || action.payload.updates.courtId) {
+        logType = 'UPDATE_MATCH'
+        logTitle = 'Match Rescheduled'
+        logDescription = `Match ${match?.player1Name} vs ${match?.player2Name} moved to ${action.payload.updates.courtName || match?.courtName} at ${action.payload.updates.scheduledTime || match?.scheduledTime}`
+      } else if (action.payload.updates.status) {
+        logType = 'UPDATE_MATCH'
+        logTitle = 'Match Status Changed'
+        logDescription = `Status changed from ${match?.status} to ${action.payload.updates.status}`
+      }
+      
+      // Create log entry
+      const logEntry = {
+        id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: new Date(),
+        actionType: action.payload.updates.score ? 'match_score_entered' as const : 
+                   (action.payload.updates.scheduledTime || action.payload.updates.courtId) ? 'match_rescheduled' as const : 
+                   'match_status_changed' as const,
+        severity: 'info' as const,
+        title: logTitle,
+        description: logDescription,
+        details: {
+          matchId: action.payload.matchId,
+          courtId: action.payload.updates.courtId || match?.courtId,
+          before: match ? {
+            score: match.score,
+            scheduledTime: match.scheduledTime,
+            courtId: match.courtId,
+            status: match.status
+          } : null,
+          after: action.payload.updates
+        }
+      }
+      
       return {
         ...state,
-        matches: state.matches.map(match => 
-          match.id === action.payload.matchId 
-            ? { ...match, ...action.payload.updates, updatedAt: new Date() }
-            : match
-        )
+        matches: state.matches.map(m => 
+          m.id === action.payload.matchId ? updatedMatch! : m
+        ),
+        logs: [logEntry, ...state.logs]
       }
+    }
     
     case 'MOVE_MATCH':
       return {
@@ -258,8 +350,30 @@ const tournamentReducer = (state: TournamentState, action: TournamentAction): To
     case 'CLEAR_CONFLICTS':
       return { ...state, conflicts: [] }
     
-    case 'APPLY_SCHEDULE':
-      return { ...state, matches: action.payload }
+    case 'APPLY_SCHEDULE': {
+      const scheduledCount = action.payload.filter(m => m.scheduledTime && m.scheduledDate).length
+      const logEntry = {
+        id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: new Date(),
+        actionType: 'schedule_generated' as const,
+        severity: 'success' as const,
+        title: 'Schedule Generated Successfully',
+        description: `${scheduledCount} matches scheduled across ${state.courts.length} courts`,
+        details: {
+          metadata: {
+            totalMatches: action.payload.length,
+            scheduledMatches: scheduledCount,
+            courtsUsed: state.courts.length
+          }
+        }
+      }
+      
+      return {
+        ...state,
+        matches: action.payload,
+        logs: [logEntry, ...state.logs]
+      }
+    }
     
     case 'RESET_SCHEDULE':
       // Create fresh unscheduled matches to avoid reference issues
@@ -268,6 +382,41 @@ const tournamentReducer = (state: TournamentState, action: TournamentAction): To
     
     case 'SET_LAST_REFRESH_TIME':
       return { ...state, lastRefreshTime: action.payload }
+    
+    case 'TOGGLE_SCHEDULE_STATUS': {
+      const newStatus = state.scheduleStatus === 'private' ? 'published' : 'private'
+      const logEntry = {
+        id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: new Date(),
+        actionType: newStatus === 'published' ? 'schedule_published' as const : 'schedule_unpublished' as const,
+        severity: 'success' as const,
+        title: newStatus === 'published' ? 'Schedule Published' : 'Schedule Set to Private',
+        description: newStatus === 'published' 
+          ? 'Tournament schedule is now publicly visible'
+          : 'Tournament schedule is now private',
+        details: {
+          before: { status: state.scheduleStatus },
+          after: { status: newStatus }
+        }
+      }
+      
+      return {
+        ...state,
+        scheduleStatus: newStatus,
+        lastPublishedAt: newStatus === 'published' ? new Date() : state.lastPublishedAt,
+        logs: [logEntry, ...state.logs]
+      }
+    }
+    
+    case 'ADD_LOG':
+      return {
+        ...state,
+        logs: [{
+          id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          timestamp: new Date(),
+          ...action.payload
+        }, ...state.logs]
+      }
     
     default:
       return state
@@ -395,6 +544,10 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
   const setLastRefreshTime = (time: Date) => {
     dispatch({ type: 'SET_LAST_REFRESH_TIME', payload: time })
   }
+  
+  const toggleScheduleStatus = () => {
+    dispatch({ type: 'TOGGLE_SCHEDULE_STATUS' })
+  }
 
   const contextValue: TournamentContextType = React.useMemo(() => ({
     state,
@@ -414,7 +567,8 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
     clearConflicts,
     applySchedule,
     resetSchedule,
-    setLastRefreshTime
+    setLastRefreshTime,
+    toggleScheduleStatus
   }), [
     state, 
     setSelectedMatch,

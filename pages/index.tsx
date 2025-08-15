@@ -9,25 +9,25 @@ export default function Home() {
   const [showFinaleEnterprise, setShowFinaleEnterprise] = useState(false)
 
   useEffect(() => {
-    // Show Picard after 3 seconds
+    // Show Picard after 1.5 seconds
     const picardTimer = setTimeout(() => {
       setShowPicard(true)
-    }, 3000)
+    }, 1500)
 
-    // Show ENGAGE text after 4.5 seconds
+    // Show ENGAGE text after 2.5 seconds
     const engageTimer = setTimeout(() => {
       setShowEngage(true)
-    }, 4500)
+    }, 2500)
 
-    // Show finale Enterprise after 5.5 seconds
+    // Show finale Enterprise after 3.2 seconds
     const finaleTimer = setTimeout(() => {
       setShowFinaleEnterprise(true)
-    }, 5500)
+    }, 3200)
 
-    // Redirect to tournament scheduler after 8 seconds
+    // Redirect to tournament scheduler after 5 seconds
     const redirectTimer = setTimeout(() => {
       router.push('/tournament-scheduler')
-    }, 8000)
+    }, 5000)
 
     return () => {
       clearTimeout(picardTimer)
@@ -57,23 +57,12 @@ export default function Home() {
                 left: `${Math.random() * 100}%`,
                 top: `${Math.random() * 100}%`,
                 animationDelay: `${Math.random() * 3}s`,
-                animationDuration: `${3 + Math.random() * 4}s`
+                animationDuration: `${1 + Math.random() * 2}s`
               }}
             />
           ))}
         </div>
 
-        {/* USS Enterprise Flyby */}
-        <div className="enterprise-container">
-          <div className="enterprise">
-            <div className="enterprise-body">
-              <div className="saucer-section"></div>
-              <div className="engineering-section"></div>
-              <div className="nacelle left-nacelle"></div>
-              <div className="nacelle right-nacelle"></div>
-            </div>
-          </div>
-        </div>
 
         {/* Federation Logo */}
         <div className="federation-logo">
@@ -85,7 +74,7 @@ export default function Home() {
         {/* Title Animation */}
         <div className="title-container">
           <h1 className="star-trek-title">
-            SPORTYA
+            SportyaOS
           </h1>
           <h2 className="subtitle">
             TOURNAMENT SCHEDULER
@@ -134,7 +123,6 @@ export default function Home() {
             <div className="finale-enterprise">
               <div className="finale-enterprise-body">
                 <div className="finale-saucer-section">
-                  <div className="sportya-text">SPORTYA</div>
                 </div>
                 <div className="finale-engineering-section"></div>
                 <div className="finale-nacelle finale-left-nacelle"></div>
@@ -169,66 +157,6 @@ export default function Home() {
             50% { opacity: 1; transform: scale(1.5); }
           }
 
-          /* Enterprise */
-          .enterprise-container {
-            position: absolute;
-            top: 30%;
-            left: -200px;
-            animation: enterprise-flyby 4s ease-in-out;
-          }
-
-          .enterprise {
-            width: 150px;
-            height: 80px;
-            position: relative;
-          }
-
-          .saucer-section {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, #888, #ccc);
-            border-radius: 50%;
-            position: absolute;
-            top: 0;
-            left: 0;
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
-          }
-
-          .engineering-section {
-            width: 60px;
-            height: 20px;
-            background: linear-gradient(135deg, #666, #999);
-            border-radius: 10px;
-            position: absolute;
-            top: 50px;
-            left: 70px;
-          }
-
-          .nacelle {
-            width: 40px;
-            height: 8px;
-            background: linear-gradient(135deg, #444, #777);
-            border-radius: 4px;
-            position: absolute;
-            left: 90px;
-          }
-
-          .left-nacelle {
-            top: 35px;
-            box-shadow: 0 0 10px #00aaff;
-          }
-
-          .right-nacelle {
-            top: 65px;
-            box-shadow: 0 0 10px #00aaff;
-          }
-
-          @keyframes enterprise-flyby {
-            0% { left: -200px; transform: scale(0.5) rotate(-5deg); }
-            50% { left: 50%; transform: scale(1) rotate(0deg); }
-            100% { left: calc(100% + 200px); transform: scale(0.5) rotate(5deg); }
-          }
-
           /* Finale Enterprise - MASSIVE */
           .finale-enterprise-container {
             position: fixed;
@@ -236,7 +164,7 @@ export default function Home() {
             right: -800px;
             transform: translateY(-50%);
             z-index: 1000;
-            animation: finale-enterprise-swoosh 2.5s ease-in-out both;
+            animation: finale-enterprise-swoosh 1.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) both;
           }
 
           .finale-enterprise {
@@ -261,8 +189,10 @@ export default function Home() {
             top: 0;
             left: 0;
             box-shadow: 
-              0 0 100px rgba(255, 255, 255, 0.6),
-              inset 0 0 100px rgba(255, 255, 255, 0.3);
+              0 0 150px rgba(255, 255, 255, 0.8),
+              0 0 200px rgba(0, 170, 255, 0.5),
+              inset 0 0 100px rgba(255, 255, 255, 0.4),
+              inset 0 0 50px rgba(0, 170, 255, 0.3);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -308,7 +238,7 @@ export default function Home() {
             box-shadow: 
               0 0 50px #00aaff,
               0 0 100px #00aaff;
-            animation: nacelle-pulse 0.5s ease-in-out infinite alternate;
+            animation: nacelle-pulse 0.2s ease-in-out infinite alternate;
           }
 
           .finale-right-nacelle {
@@ -316,24 +246,33 @@ export default function Home() {
             box-shadow: 
               0 0 50px #00aaff,
               0 0 100px #00aaff;
-            animation: nacelle-pulse 0.5s ease-in-out infinite alternate 0.25s;
+            animation: nacelle-pulse 0.2s ease-in-out infinite alternate 0.1s;
           }
 
           @keyframes finale-enterprise-swoosh {
             0% { 
-              right: -800px; 
-              transform: translateY(-50%) scale(0.8) rotate(10deg);
+              right: -1000px; 
+              transform: translateY(-50%) scale(0.5) rotate(15deg);
               opacity: 0;
+              filter: blur(5px);
             }
-            20% { 
-              right: 50%; 
-              transform: translateY(-50%) scale(1.2) rotate(0deg);
+            15% { 
+              right: 40%; 
+              transform: translateY(-50%) scale(1.5) rotate(-2deg);
               opacity: 1;
+              filter: blur(0px) brightness(1.2);
+            }
+            30% { 
+              right: 50%; 
+              transform: translateY(-50%) scale(1.3) rotate(0deg);
+              opacity: 1;
+              filter: blur(0px) brightness(1.3);
             }
             100% { 
-              right: calc(100% + 800px); 
-              transform: translateY(-50%) scale(0.8) rotate(-10deg);
-              opacity: 0.8;
+              right: calc(100% + 1000px); 
+              transform: translateY(-50%) scale(0.3) rotate(-20deg);
+              opacity: 0;
+              filter: blur(10px);
             }
           }
 
@@ -357,7 +296,7 @@ export default function Home() {
             top: 20%;
             left: 50%;
             transform: translateX(-50%);
-            animation: logo-appear 2s ease-in-out 1s both;
+            animation: logo-appear 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.3s both;
           }
 
           .logo-circle {
@@ -389,7 +328,7 @@ export default function Home() {
             left: 50%;
             transform: translateX(-50%);
             text-align: center;
-            animation: title-emerge 2s ease-out 1.5s both;
+            animation: title-emerge 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s both;
           }
 
           .star-trek-title {
@@ -425,11 +364,15 @@ export default function Home() {
           @keyframes title-emerge {
             0% { 
               opacity: 0; 
-              transform: translateX(-50%) translateY(50px) scale(0.8);
+              transform: translateX(-50%) translateY(100px) scale(0.3) rotateX(90deg);
+            }
+            50% { 
+              opacity: 1; 
+              transform: translateX(-50%) translateY(-10px) scale(1.1) rotateX(0deg);
             }
             100% { 
               opacity: 1; 
-              transform: translateX(-50%) translateY(0) scale(1);
+              transform: translateX(-50%) translateY(0) scale(1) rotateX(0deg);
             }
           }
 
@@ -443,7 +386,7 @@ export default function Home() {
             position: absolute;
             bottom: 20%;
             right: 10%;
-            animation: picard-materialize 1s ease-out both;
+            animation: picard-materialize 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) both;
           }
 
           .picard-silhouette {
@@ -522,7 +465,7 @@ export default function Home() {
             bottom: 30%;
             left: 50%;
             transform: translateX(-50%);
-            animation: engage-boom 1.5s ease-out both;
+            animation: engage-boom 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) both;
           }
 
           .engage-text {
@@ -536,7 +479,7 @@ export default function Home() {
               0 0 30px #ff6600,
               0 0 40px #ff6600;
             letter-spacing: 0.2em;
-            animation: engage-pulse 0.5s ease-in-out infinite alternate;
+            animation: engage-pulse 0.2s ease-in-out infinite alternate;
           }
 
           .engage-glow {
@@ -553,15 +496,21 @@ export default function Home() {
           @keyframes engage-boom {
             0% { 
               opacity: 0; 
-              transform: translateX(-50%) scale(2);
+              transform: translateX(-50%) scale(3) rotateZ(180deg);
+              filter: blur(20px);
             }
-            50% { 
+            40% { 
               opacity: 1; 
-              transform: translateX(-50%) scale(0.8);
+              transform: translateX(-50%) scale(0.7) rotateZ(-10deg);
+              filter: blur(0px);
+            }
+            70% { 
+              transform: translateX(-50%) scale(1.2) rotateZ(5deg);
             }
             100% { 
               opacity: 1; 
-              transform: translateX(-50%) scale(1);
+              transform: translateX(-50%) scale(1) rotateZ(0deg);
+              filter: blur(0px) brightness(1.2);
             }
           }
 
@@ -584,7 +533,7 @@ export default function Home() {
             height: 100%;
             pointer-events: none;
             opacity: 0;
-            animation: warp-activate 2s ease-in-out 6s both;
+            animation: warp-activate 1.2s ease-in-out 3.5s both;
           }
 
           .warp-line {
@@ -627,11 +576,6 @@ export default function Home() {
             
             .engage-text {
               font-size: 2rem;
-            }
-            
-            .enterprise {
-              width: 100px;
-              height: 60px;
             }
             
             .picard-container {

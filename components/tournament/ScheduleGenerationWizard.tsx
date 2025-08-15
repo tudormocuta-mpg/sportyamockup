@@ -1085,126 +1085,127 @@ const ScheduleGenerationWizard: React.FC = () => {
         
         {/* Success Message - Schedule Already Generated */}
         {hasGeneratedSchedule && (
-          <div className="bg-gradient-to-r from-purple-600 to-emerald-600 rounded-xl shadow-2xl p-8 mb-6 text-white relative overflow-hidden">
-            {/* Decorative background elements */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-16 translate-x-16"></div>
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-12 -translate-x-12"></div>
-            
-            <div className="flex items-start mb-6 relative z-10">
-              <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-green-500 rounded-xl flex items-center justify-center mr-6 shadow-lg">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <div className="flex items-start mb-4">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-4">
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
               <div className="flex-1">
-                <h2 className="text-3xl font-bold mb-2 bg-gradient-to-r from-white to-green-100 bg-clip-text text-transparent">
+                <h2 className="text-xl font-semibold text-gray-900 mb-1">
                   Tournament Schedule Generated Successfully!
                 </h2>
-                <p className="text-purple-100 text-lg leading-relaxed">
-                  Your tournament now has a complete schedule with all matches optimally assigned to courts and time slots.
+                <p className="text-gray-600 text-sm">
+                  Your tournament schedule has been created with all matches assigned to courts and time slots.
                 </p>
               </div>
             </div>
             
-            <div className="bg-white/10 rounded-xl p-6 backdrop-blur-sm mb-6 border border-white/20">
-              <div className="flex items-center mb-4">
-                <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center mr-3">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-semibold text-white">Schedule Generation Complete</h3>
-              </div>
+            <div className="bg-gray-50 rounded-lg p-4 mb-4">
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">Schedule Summary</h3>
               
-              <p className="mb-6 text-purple-100 text-base leading-relaxed">
-                The automated scheduling engine has successfully processed your tournament requirements:
-              </p>
-              
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="flex items-start p-3 bg-white/5 rounded-lg">
-                  <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center mr-3 mt-0.5">
-                    <span className="text-white text-sm font-bold">✓</span>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="bg-white rounded-lg p-3 border border-gray-200">
+                  <div className="flex items-center mb-1">
+                    <svg className="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="text-xs font-medium text-gray-700">Match Assignments</span>
                   </div>
-                  <div>
-                    <strong className="text-white block mb-1">Match Assignments</strong>
-                    <span className="text-purple-200 text-sm">All matches assigned to courts and time slots</span>
-                  </div>
+                  <div className="text-xs text-gray-500">All matches scheduled</div>
                 </div>
                 
-                <div className="flex items-start p-3 bg-white/5 rounded-lg">
-                  <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center mr-3 mt-0.5">
-                    <span className="text-white text-sm font-bold">✓</span>
+                <div className="bg-white rounded-lg p-3 border border-gray-200">
+                  <div className="flex items-center mb-1">
+                    <svg className="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="text-xs font-medium text-gray-700">Court Optimization</span>
                   </div>
-                  <div>
-                    <strong className="text-white block mb-1">Court Optimization</strong>
-                    <span className="text-purple-200 text-sm">Maximized court utilization efficiency</span>
-                  </div>
+                  <div className="text-xs text-gray-500">Maximized utilization</div>
                 </div>
                 
-                <div className="flex items-start p-3 bg-white/5 rounded-lg">
-                  <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center mr-3 mt-0.5">
-                    <span className="text-white text-sm font-bold">✓</span>
+                <div className="bg-white rounded-lg p-3 border border-gray-200">
+                  <div className="flex items-center mb-1">
+                    <svg className="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="text-xs font-medium text-gray-700">Scheduling Rules</span>
                   </div>
-                  <div>
-                    <strong className="text-white block mb-1">Scheduling Rules</strong>
-                    <span className="text-purple-200 text-sm">Applied all priority constraints</span>
-                  </div>
+                  <div className="text-xs text-gray-500">All constraints applied</div>
                 </div>
                 
-                <div className="flex items-start p-3 bg-white/5 rounded-lg">
-                  <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center mr-3 mt-0.5">
-                    <span className="text-white text-sm font-bold">✓</span>
+                <div className="bg-white rounded-lg p-3 border border-gray-200">
+                  <div className="flex items-center mb-1">
+                    <svg className="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="text-xs font-medium text-gray-700">Timeline Complete</span>
                   </div>
-                  <div>
-                    <strong className="text-white block mb-1">Timeline Complete</strong>
-                    <span className="text-purple-200 text-sm">Set all match times and dates</span>
-                  </div>
+                  <div className="text-xs text-gray-500">Dates and times set</div>
                 </div>
               </div>
             </div>
 
-            <div className="bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-400/30 rounded-xl p-6 backdrop-blur-sm">
+            {/* Schedule Status Notice */}
+            <div className={`border rounded-lg p-4 mb-4 ${
+              state.scheduleStatus === 'published' 
+                ? 'bg-green-50 border-green-200' 
+                : 'bg-amber-50 border-amber-200'
+            }`}>
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  {state.scheduleStatus === 'published' ? (
+                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.314 18.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                  )}
+                </div>
+                <div className="ml-3">
+                  <h3 className={`text-sm font-semibold ${
+                    state.scheduleStatus === 'published' ? 'text-green-800' : 'text-amber-800'
+                  }`}>
+                    Schedule Status: {state.scheduleStatus === 'published' ? 'PUBLIC' : 'Private'}
+                  </h3>
+                  <p className={`text-sm mt-1 ${
+                    state.scheduleStatus === 'published' ? 'text-green-700' : 'text-amber-700'
+                  }`}>
+                    {state.scheduleStatus === 'published' ? (
+                      <>Your schedule is <strong>Public</strong> and visible on the tournament page.</>
+                    ) : (
+                      <>
+                        Your schedule is currently <strong>Private</strong> and not visible on the official tournament page on Sportya. 
+                        To make it public, use the <strong>Publish</strong> button in the top-right corner of the screen.
+                      </>
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t pt-4">
               <div className="flex items-start">
-                <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-orange-600 rounded-xl flex items-center justify-center mr-4 shadow-lg">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.314 18.5c-.77.833.192 2.5 1.732 2.5z" />
+                <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
+                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-semibold text-red-100 mb-3 text-lg">Reset Tournament Schedule</h4>
-                  <p className="text-red-200 mb-4 leading-relaxed">
-                    Need to regenerate the schedule? The reset function will completely restart the scheduling process:
+                  <h4 className="font-medium text-gray-900 text-sm mb-2">Reset Tournament Schedule</h4>
+                  <p className="text-gray-600 text-xs mb-3">
+                    Need to regenerate? This will clear all scheduled matches and restart the wizard.
                   </p>
-                  
-                  <div className="bg-red-500/10 rounded-lg p-4 mb-4">
-                    <ul className="space-y-2 text-red-200">
-                      <li className="flex items-center">
-                        <span className="w-2 h-2 bg-red-400 rounded-full mr-3"></span>
-                        <span><strong>Reset all scheduled matches</strong> and clear court assignments</span>
-                      </li>
-                      <li className="flex items-center">
-                        <span className="w-2 h-2 bg-red-400 rounded-full mr-3"></span>
-                        <span><strong>Remove manual adjustments</strong> and customizations</span>
-                      </li>
-                      <li className="flex items-center">
-                        <span className="w-2 h-2 bg-red-400 rounded-full mr-3"></span>
-                        <span><strong>Start fresh</strong> with new tournament parameters</span>
-                      </li>
-                    </ul>
-                  </div>
-                  
-                  <div className="flex items-center p-3 bg-orange-500/20 rounded-lg mb-4">
-                    <svg className="w-5 h-5 text-orange-300 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.314 18.5c-.77.833.192 2.5 1.732 2.5z" />
-                    </svg>
-                    <span className="text-orange-200 font-medium">This action cannot be undone!</span>
-                  </div>
                   
                   <button
                     onClick={handleResetSchedule}
-                    className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 transition-all transform hover:scale-105 font-medium shadow-lg"
+                    className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors font-medium"
                   >
-                    🔄 Reset & Restart Wizard
+                    Reset & Restart Wizard
                   </button>
                 </div>
               </div>

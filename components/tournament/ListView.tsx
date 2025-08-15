@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import { useTournament } from '../../contexts/TournamentContext'
 import { Match, MatchStatus } from '../../types/tournament'
-import { ChevronUpIcon, ChevronDownIcon, MagnifyingGlassIcon, FunnelIcon, ArrowPathIcon, CheckCircleIcon, ClockIcon, PlayIcon, PauseIcon, ExclamationTriangleIcon, MapPinIcon } from '@heroicons/react/24/outline'
+import { ChevronUpIcon, ChevronDownIcon, MagnifyingGlassIcon, FunnelIcon, ArrowPathIcon, CheckCircleIcon, ClockIcon, PlayIcon, PauseIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 
 type SortField = 'time' | 'court' | 'draw' | 'drawModel' | 'gameType' | 'players' | 'status'
 type SortDirection = 'asc' | 'desc'
@@ -255,7 +255,6 @@ const ListView: React.FC = () => {
                 onClick={() => handleSort('court')}
               >
                 <div className="flex items-center space-x-1">
-                  <MapPinIcon className="w-4 h-4" />
                   <span>Court</span>
                   <SortIcon field="court" />
                 </div>
@@ -335,17 +334,14 @@ const ListView: React.FC = () => {
                 </td>
                 
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center space-x-2">
-                    <MapPinIcon className="w-4 h-4 text-green-500" />
-                    <div>
-                      <div className="text-sm font-bold text-gray-900">{match.courtName || 'TBD'}</div>
-                      {match.courtName && (
-                        <div className="text-xs text-gray-500">
-                          {state.courts.find(c => c.id === match.courtId)?.surface} • 
-                          {state.courts.find(c => c.id === match.courtId)?.indoor ? '🏠 Indoor' : '🌤️ Outdoor'}
-                        </div>
-                      )}
-                    </div>
+                  <div>
+                    <div className="text-sm font-bold text-gray-900">{match.courtName || 'TBD'}</div>
+                    {match.courtName && (
+                      <div className="text-xs text-gray-500">
+                        {state.courts.find(c => c.id === match.courtId)?.surface} • 
+                        {state.courts.find(c => c.id === match.courtId)?.indoor ? 'Indoor' : 'Outdoor'}
+                      </div>
+                    )}
                   </div>
                 </td>
                 
@@ -381,7 +377,7 @@ const ListView: React.FC = () => {
                     <div className="text-sm font-bold text-gray-900">{formatPlayers(match)}</div>
                     <div className="flex items-center space-x-2 mt-1">
                       {match.estimatedDuration && (
-                        <span className="text-xs text-gray-500">⏱️ {match.estimatedDuration}min</span>
+                        <span className="text-xs text-gray-500">{match.estimatedDuration}min</span>
                       )}
                     </div>
                   </div>

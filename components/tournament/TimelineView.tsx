@@ -209,14 +209,6 @@ const TimelineView: React.FC = () => {
     }))
   }
 
-  // Time range controls (respecting wizard boundaries)
-  const adjustTimeRange = (startHour: number, endHour: number) => {
-    setTimelineConfig(prev => ({
-      ...prev,
-      startHour: Math.max(startHour, wizardTimeframe.startHour),
-      endHour: Math.min(endHour, wizardTimeframe.endHour)
-    }))
-  }
 
   // Get match color based on mode
   const getMatchColor = (match: Match): string => {
@@ -289,7 +281,7 @@ const TimelineView: React.FC = () => {
       }
     }
     
-    return level * 25 // 25px per level
+    return level * 48 // 48px per level to account for match height + spacing
   }
 
   return (
@@ -401,27 +393,6 @@ const TimelineView: React.FC = () => {
           {/* Timeline Controls */}
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-6">
-              {/* Time Range Controls */}
-              <div className="flex items-center space-x-3 bg-white px-4 py-2 rounded-lg shadow-sm border">
-                <label className="text-sm font-bold text-gray-700">Time Range:</label>
-                <button
-                  onClick={() => adjustTimeRange(timelineConfig.startHour - 1, timelineConfig.endHour)}
-                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
-                  title="Start Earlier"
-                >
-                  <ChevronLeftIcon className="w-4 h-4" />
-                </button>
-                <span className="text-sm font-bold text-blue-600">
-                  {timelineConfig.startHour}:00 - {timelineConfig.endHour}:00
-                </span>
-                <button
-                  onClick={() => adjustTimeRange(timelineConfig.startHour, timelineConfig.endHour + 1)}
-                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
-                  title="End Later"
-                >
-                  <ChevronRightIcon className="w-4 h-4" />
-                </button>
-              </div>
 
               {/* Zoom Controls */}
               <div className="flex items-center space-x-3 bg-white px-4 py-2 rounded-lg shadow-sm border">
@@ -457,13 +428,13 @@ const TimelineView: React.FC = () => {
           {/* Time Header */}
           <div className="sticky top-0 bg-white z-50 border-b border-gray-200 shadow-sm">
             <div className="flex">
-              <div className="p-4 bg-gray-50 border-r border-gray-200 flex-shrink-0 sticky left-0 z-60" style={{ width: '160px', minWidth: '160px', maxWidth: '160px' }}>
+              <div className="p-4 bg-gray-50 border-r border-gray-200 flex-shrink-0 sticky left-0" style={{ width: '160px', minWidth: '160px', maxWidth: '160px', zIndex: 60 }}>
                 <div className="flex items-center space-x-2">
                   <CalendarDaysIcon className="w-5 h-5 text-gray-600" />
                   <span className="font-bold text-gray-800">Tournament Days</span>
                 </div>
               </div>
-              <div className="p-4 bg-gray-100 border-r border-gray-200 flex-shrink-0 sticky z-55" style={{ width: '120px', minWidth: '120px', maxWidth: '120px', left: '160px' }}>
+              <div className="p-4 bg-gray-100 border-r border-gray-200 flex-shrink-0 sticky" style={{ width: '120px', minWidth: '120px', maxWidth: '120px', left: '160px', zIndex: 60 }}>
                 <div className="flex items-center space-x-2">
                   <MapPinIcon className="w-5 h-5 text-gray-600" />
                   <span className="font-bold text-gray-800">Courts</span>
@@ -476,7 +447,7 @@ const TimelineView: React.FC = () => {
                   return (
                     <div
                       key={hour}
-                      className="absolute top-0 border-l border-gray-300 h-full flex items-start justify-start pl-2 pt-2 z-10"
+                      className="absolute top-0 border-l border-gray-300 h-full flex items-start justify-start pl-2 pt-2 z-0"
                       style={{ left: `${i * (60 / timelineConfig.interval) * timelineConfig.cellWidth}px` }}
                     >
                       <div className="bg-white px-2 py-1 rounded shadow-sm border">
@@ -515,7 +486,7 @@ const TimelineView: React.FC = () => {
                     {/* Day container with proper spanning */}
                     <div className="flex">
                       {/* Day info column spanning full height */}
-                      <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 border-r border-gray-200 flex flex-col justify-center sticky left-0 z-30 shadow-sm flex-shrink-0" style={{ width: '160px', minWidth: '160px', maxWidth: '160px' }}>
+                      <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 border-r border-gray-200 flex flex-col justify-center sticky left-0 shadow-sm flex-shrink-0" style={{ width: '160px', minWidth: '160px', maxWidth: '160px', zIndex: 55 }}>
                         <div className="flex items-center space-x-2 mb-1">
                           <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                           <div className="font-bold text-gray-900 text-lg">
@@ -538,13 +509,31 @@ const TimelineView: React.FC = () => {
                           return (
                             <div key={`${date}-${court.id}`} className="flex border-b border-gray-100">
                               {/* Court info column - now sticky */}
-                              <div className="p-2 bg-gray-50 border-r border-gray-200 flex flex-col justify-center sticky left-0 z-40 shadow-sm flex-shrink-0" style={{ width: '120px', minWidth: '120px', maxWidth: '120px', left: '160px' }}>
+                              <div className="p-2 bg-gray-50 border-r border-gray-200 flex flex-col justify-center sticky left-0 shadow-sm flex-shrink-0" style={{ 
+                                width: '120px', 
+                                minWidth: '120px', 
+                                maxWidth: '120px', 
+                                left: '160px', 
+                                zIndex: 55,
+                                minHeight: '60px',
+                                height: `${Math.max(60, courtMatches.reduce((max, match) => {
+                                  const pos = getMatchVerticalPosition(match, date, court.id)
+                                  return Math.max(max, pos + 48)
+                                }, 60))}px`
+                              }}>
                                 <div className="font-bold text-gray-900 text-sm">{court.name}</div>
                                 <div className="text-xs text-gray-600">{courtMatches.length} matches</div>
                               </div>
                               
-                              {/* Timeline content for this court - reduced height */}
-                              <div className="flex-1 relative h-8 z-0 bg-white" style={{ minWidth: `${timeSlots.length * timelineConfig.cellWidth}px` }}>
+                              {/* Timeline content for this court - dynamic height based on overlapping matches */}
+                              <div className="flex-1 relative z-0 bg-white" style={{ 
+                                minWidth: `${timeSlots.length * timelineConfig.cellWidth}px`,
+                                minHeight: '60px',
+                                height: `${Math.max(60, courtMatches.reduce((max, match) => {
+                                  const pos = getMatchVerticalPosition(match, date, court.id)
+                                  return Math.max(max, pos + 48)
+                                }, 60))}px`
+                              }}>
                             {/* Time grid */}
                             {timeSlots.map((slot, index) => (
                               <div
@@ -564,33 +553,32 @@ const TimelineView: React.FC = () => {
                               return (
                                 <div
                                   key={match.id}
-                                  className={`absolute rounded border cursor-pointer shadow-sm hover:shadow-md transition-all duration-200 text-xs p-2 overflow-hidden ${getMatchColor(match)}`}
+                                  className={`absolute rounded border cursor-pointer shadow-sm hover:shadow-md transition-all duration-200 text-xs p-2 ${getMatchColor(match)}`}
                                   style={{
                                     left: `${getTimePosition(match.scheduledTime!)}px`,
-                                    width: `${Math.max(getMatchWidth(match), 120)}px`,
+                                    width: `${Math.max(getMatchWidth(match), 140)}px`,
                                     top: `${2 + verticalPos}px`,
-                                    height: '20px'
+                                    height: '44px'
                                   }}
                                   onClick={() => setSelectedMatch(match)}
                                   title={`${match.drawName} - ${formatPlayers(match)} - ${match.status}`}
                                 >
-                                  <div className="flex items-center justify-between h-full">
-                                    <div className="flex items-center space-x-1 min-w-0">
-                                      <span className="font-bold truncate">
+                                  <div className="flex flex-col h-full">
+                                    {/* First row: Draw name and status */}
+                                    <div className="flex items-center justify-between mb-1">
+                                      <span className="font-bold text-xs">
                                         {match.drawName}
                                       </span>
-                                      <span className="text-xs opacity-80 truncate">
-                                        - {formatPlayers(match)}
-                                      </span>
+                                      <div className="flex items-center space-x-1 flex-shrink-0">
+                                        {match.status === 'in-progress' && <PlayIcon className="w-3 h-3 animate-pulse" />}
+                                        {match.status === 'completed' && <CheckCircleIcon className="w-3 h-3" />}
+                                        {match.status === 'scheduled' && <ClockIcon className="w-3 h-3" />}
+                                        {match.status === 'postponed' && <PauseIcon className="w-3 h-3" />}
+                                      </div>
                                     </div>
-                                    <div className="flex items-center space-x-1 flex-shrink-0 ml-2">
-                                      {match.status === 'in-progress' && <PlayIcon className="w-3 h-3 animate-pulse" />}
-                                      {match.status === 'completed' && <CheckCircleIcon className="w-3 h-3" />}
-                                      {match.status === 'scheduled' && <ClockIcon className="w-3 h-3" />}
-                                      {match.status === 'postponed' && <PauseIcon className="w-3 h-3" />}
-                                      <span className="text-xs capitalize font-medium">
-                                        {match.status.replace('-', ' ')}
-                                      </span>
+                                    {/* Second row: Players */}
+                                    <div className="text-xs text-gray-700">
+                                      {formatPlayers(match)}
                                     </div>
                                   </div>
                                 </div>

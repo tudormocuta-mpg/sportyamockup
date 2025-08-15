@@ -107,6 +107,42 @@ export interface ScheduleConflict {
 // View and UI related types
 export type ViewMode = 'grid' | 'list' | 'timeline' | 'draw'
 
+// Logging types
+export type LogActionType = 
+  | 'match_scheduled'
+  | 'match_rescheduled'
+  | 'match_score_entered'
+  | 'match_status_changed'
+  | 'schedule_generated'
+  | 'schedule_published'
+  | 'schedule_unpublished'
+  | 'blocker_added'
+  | 'blocker_removed'
+  | 'court_modified'
+  | 'configuration_changed'
+  | 'export_generated'
+  | 'system_error'
+
+export type LogSeverity = 'info' | 'warning' | 'error' | 'success'
+
+export interface LogEntry {
+  id: string
+  timestamp: Date
+  actionType: LogActionType
+  severity: LogSeverity
+  title: string
+  description: string
+  details?: {
+    matchId?: string
+    courtId?: string
+    playerId?: string
+    before?: any
+    after?: any
+    metadata?: Record<string, any>
+  }
+  user?: string
+}
+
 export interface GridViewProps {
   matches: Match[]
   courts: Court[]
@@ -141,6 +177,7 @@ export interface TournamentState {
   matches: Match[]
   blockers: Blocker[]
   draws: TournamentDraw[]
+  logs: LogEntry[]
   selectedMatch: Match | null
   conflicts: ScheduleConflict[]
   currentView: ViewMode
@@ -148,6 +185,8 @@ export interface TournamentState {
   loading: boolean
   error: string | null
   lastRefreshTime: Date | null
+  scheduleStatus: 'private' | 'published'
+  lastPublishedAt: Date | null
 }
 
 export interface TournamentContextType {
@@ -170,6 +209,7 @@ export interface TournamentContextType {
   applySchedule: () => void
   resetSchedule: () => void
   setLastRefreshTime: (time: Date) => void
+  toggleScheduleStatus: () => void
 }
 
 // Action types for reducer
@@ -191,6 +231,8 @@ export type TournamentAction =
   | { type: 'APPLY_SCHEDULE'; payload: Match[] }
   | { type: 'RESET_SCHEDULE' }
   | { type: 'SET_LAST_REFRESH_TIME'; payload: Date }
+  | { type: 'TOGGLE_SCHEDULE_STATUS' }
+  | { type: 'ADD_LOG'; payload: Omit<LogEntry, 'id' | 'timestamp'> }
 
 // Configuration types
 export interface TournamentConfiguration {

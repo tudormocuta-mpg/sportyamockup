@@ -6,20 +6,21 @@ import ListView from './ListView'
 import TimelineView from './TimelineView'
 import DrawView from './DrawView'
 import MatchDetailsCard from './MatchDetailsCard'
-import PlayerMatchCard from './PlayerMatchCard'
+import PlayerDetailsCard from './PlayerDetailsCard'
 import Configuration from './Configuration'
 import Blockers from './Blockers'
 import Courts from './Courts'
 import MatchStatusTracker from './MatchStatusTracker'
 import Export from './Export'
 import Notifications from './Notifications'
+import Logs from './Logs'
 import ScheduleGenerationWizard from './ScheduleGenerationWizard'
-import { CalendarDaysIcon, ChartBarIcon, ExclamationTriangleIcon, ArrowDownTrayIcon, BellIcon, Cog6ToothIcon, MapPinIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/outline'
+import { CalendarDaysIcon, ChartBarIcon, ExclamationTriangleIcon, ArrowDownTrayIcon, BellIcon, Cog6ToothIcon, MapPinIcon, ClipboardDocumentListIcon, GlobeAltIcon, LockClosedIcon, DocumentTextIcon } from '@heroicons/react/24/outline'
 
-type MainTab = 'schedule' | 'wizard' | 'configuration' | 'courts' | 'status' | 'blockers' | 'export' | 'notifications'
+type MainTab = 'schedule' | 'wizard' | 'configuration' | 'courts' | 'status' | 'blockers' | 'export' | 'notifications' | 'logs'
 
 const TournamentLayout: React.FC = () => {
-  const { state, setCurrentView, setSelectedDate, setSelectedMatch, resetSchedule } = useTournament()
+  const { state, setCurrentView, setSelectedDate, setSelectedMatch, resetSchedule, toggleScheduleStatus } = useTournament()
   
   // Check if this is a fresh tournament (no scheduled matches)
   const isFreshTournament = state.matches.every(match => !match.scheduledTime || !match.scheduledDate)
@@ -43,7 +44,8 @@ const TournamentLayout: React.FC = () => {
       orange: 'border-orange-500 text-orange-700 bg-white shadow-sm',
       red: 'border-red-500 text-red-700 bg-white shadow-sm',
       indigo: 'border-indigo-500 text-indigo-700 bg-white shadow-sm',
-      yellow: 'border-yellow-500 text-yellow-700 bg-white shadow-sm'
+      yellow: 'border-yellow-500 text-yellow-700 bg-white shadow-sm',
+      cyan: 'border-cyan-500 text-cyan-700 bg-white shadow-sm'
     }
     return colorMap[color] || 'border-blue-500 text-blue-700 bg-white shadow-sm'
   }
@@ -58,7 +60,8 @@ const TournamentLayout: React.FC = () => {
       orange: 'text-orange-600',
       red: 'text-red-600',
       indigo: 'text-indigo-600',
-      yellow: 'text-yellow-600'
+      yellow: 'text-yellow-600',
+      cyan: 'text-cyan-600'
     }
     return colorMap[color] || 'text-blue-600'
   }
@@ -72,7 +75,8 @@ const TournamentLayout: React.FC = () => {
     { id: 'status', name: 'Match Status', icon: ClipboardDocumentListIcon, color: 'orange' },
     { id: 'blockers', name: 'Blockers', icon: ExclamationTriangleIcon, color: 'red' },
     { id: 'export', name: 'Export', icon: ArrowDownTrayIcon, color: 'indigo' },
-    { id: 'notifications', name: 'Notifications', icon: BellIcon, color: 'yellow' }
+    { id: 'notifications', name: 'Notifications', icon: BellIcon, color: 'yellow' },
+    { id: 'logs', name: 'Logs', icon: DocumentTextIcon, color: 'cyan' }
   ]
 
   // Schedule view tabs
@@ -130,6 +134,9 @@ const TournamentLayout: React.FC = () => {
     if (activeMainTab === 'notifications') {
       return <Notifications />
     }
+    if (activeMainTab === 'logs') {
+      return <Logs />
+    }
     return renderScheduleView()
   }
 
@@ -163,11 +170,51 @@ const TournamentLayout: React.FC = () => {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Tournament Scheduler
+                SportyaOS Tournament Scheduler
               </h1>
               <p className="text-gray-600 mt-1 font-medium">Professional tournament management system</p>
             </div>
             
+            {/* Publish Button */}
+            <div className="flex items-center space-x-4">
+              {state.lastPublishedAt && state.scheduleStatus === 'published' && (
+                <div className="text-sm text-gray-600">
+                  Published at {new Date(state.lastPublishedAt).toLocaleDateString('en-US', { 
+                    weekday: 'short', 
+                    month: 'short', 
+                    day: 'numeric' 
+                  })}, {new Date(state.lastPublishedAt).toLocaleTimeString('en-US', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}
+                </div>
+              )}
+              
+              <button
+                onClick={toggleScheduleStatus}
+                disabled={!hasGeneratedSchedule}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                  !hasGeneratedSchedule
+                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                    : state.scheduleStatus === 'published'
+                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    : 'bg-amber-600 text-white hover:bg-amber-700'
+                }`}
+                title={!hasGeneratedSchedule ? 'Complete the wizard first to publish the schedule' : ''}
+              >
+                {state.scheduleStatus === 'published' ? (
+                  <>
+                    <LockClosedIcon className="w-4 h-4" />
+                    <span>Set to Private</span>
+                  </>
+                ) : (
+                  <>
+                    <GlobeAltIcon className="w-4 h-4" />
+                    <span>Publish</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -209,6 +256,11 @@ const TournamentLayout: React.FC = () => {
                   )}
                   {tab.id === 'notifications' && (
                     <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                  )}
+                  {tab.id === 'logs' && state.logs.length > 0 && (
+                    <div className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-cyan-600 bg-cyan-100 rounded-full">
+                      {state.logs.length}
+                    </div>
                   )}
                 </button>
               )
@@ -256,31 +308,19 @@ const TournamentLayout: React.FC = () => {
 
         {/* Enhanced Side Panel - Match Details or Player Card */}
         {(state.selectedMatch || selectedPlayer) && (
-          <aside className="w-80 bg-white border-l border-gray-200 flex flex-col shadow-lg relative">
-            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 to-purple-500"></div>
-            <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gradient-to-r from-blue-50 to-purple-50">
-              <h3 className="text-lg font-bold text-gray-900">
-                {state.selectedMatch ? '🎾 Match Details' : '👤 Player Profile'}
-              </h3>
-              <button
-                onClick={() => {
-                  setSelectedMatch(null)
-                  setSelectedPlayer(null)
-                }}
-                className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors text-xl"
-                title="Close"
-              >
-                ×
-              </button>
-            </div>
-            <div className="flex-1 overflow-auto custom-scrollbar">
-              {state.selectedMatch ? (
-                <MatchDetailsCard match={state.selectedMatch} />
-              ) : selectedPlayer ? (
-                <PlayerMatchCard playerId={selectedPlayer} />
-              ) : null}
-            </div>
-          </aside>
+          <>
+            {state.selectedMatch ? (
+              <MatchDetailsCard 
+                match={state.selectedMatch} 
+                onClose={() => setSelectedMatch(null)}
+              />
+            ) : selectedPlayer ? (
+              <PlayerDetailsCard 
+                playerId={selectedPlayer} 
+                onClose={() => setSelectedPlayer(null)}
+              />
+            ) : null}
+          </>
         )}
       </div>
 
