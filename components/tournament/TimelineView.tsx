@@ -457,13 +457,13 @@ const TimelineView: React.FC = () => {
           {/* Time Header */}
           <div className="sticky top-0 bg-white z-50 border-b border-gray-200 shadow-sm">
             <div className="flex">
-              <div className="p-4 bg-gray-50 border-r border-gray-200 flex-shrink-0 sticky left-0 z-40" style={{ width: '160px', minWidth: '160px', maxWidth: '160px' }}>
+              <div className="p-4 bg-gray-50 border-r border-gray-200 flex-shrink-0 sticky left-0 z-60" style={{ width: '160px', minWidth: '160px', maxWidth: '160px' }}>
                 <div className="flex items-center space-x-2">
                   <CalendarDaysIcon className="w-5 h-5 text-gray-600" />
                   <span className="font-bold text-gray-800">Tournament Days</span>
                 </div>
               </div>
-              <div className="p-4 bg-gray-100 border-r border-gray-200 flex-shrink-0 sticky z-45" style={{ width: '120px', minWidth: '120px', maxWidth: '120px', left: '160px' }}>
+              <div className="p-4 bg-gray-100 border-r border-gray-200 flex-shrink-0 sticky z-55" style={{ width: '120px', minWidth: '120px', maxWidth: '120px', left: '160px' }}>
                 <div className="flex items-center space-x-2">
                   <MapPinIcon className="w-5 h-5 text-gray-600" />
                   <span className="font-bold text-gray-800">Courts</span>
