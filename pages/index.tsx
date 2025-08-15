@@ -6,6 +6,7 @@ export default function Home() {
   const router = useRouter()
   const [showPicard, setShowPicard] = useState(false)
   const [showEngage, setShowEngage] = useState(false)
+  const [showFinaleEnterprise, setShowFinaleEnterprise] = useState(false)
 
   useEffect(() => {
     // Show Picard after 3 seconds
@@ -18,14 +19,20 @@ export default function Home() {
       setShowEngage(true)
     }, 4500)
 
-    // Redirect to tournament scheduler after 6 seconds
+    // Show finale Enterprise after 5.5 seconds
+    const finaleTimer = setTimeout(() => {
+      setShowFinaleEnterprise(true)
+    }, 5500)
+
+    // Redirect to tournament scheduler after 8 seconds
     const redirectTimer = setTimeout(() => {
       router.push('/tournament-scheduler')
-    }, 6000)
+    }, 8000)
 
     return () => {
       clearTimeout(picardTimer)
       clearTimeout(engageTimer)
+      clearTimeout(finaleTimer)
       clearTimeout(redirectTimer)
     }
   }, [router])
@@ -121,6 +128,22 @@ export default function Home() {
           ))}
         </div>
 
+        {/* Finale Enterprise - Massive flyby with SPORTYA */}
+        {showFinaleEnterprise && (
+          <div className="finale-enterprise-container">
+            <div className="finale-enterprise">
+              <div className="finale-enterprise-body">
+                <div className="finale-saucer-section">
+                  <div className="sportya-text">SPORTYA</div>
+                </div>
+                <div className="finale-engineering-section"></div>
+                <div className="finale-nacelle finale-left-nacelle"></div>
+                <div className="finale-nacelle finale-right-nacelle"></div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <style jsx>{`
           /* Starfield */
           .starfield {
@@ -204,6 +227,128 @@ export default function Home() {
             0% { left: -200px; transform: scale(0.5) rotate(-5deg); }
             50% { left: 50%; transform: scale(1) rotate(0deg); }
             100% { left: calc(100% + 200px); transform: scale(0.5) rotate(5deg); }
+          }
+
+          /* Finale Enterprise - MASSIVE */
+          .finale-enterprise-container {
+            position: fixed;
+            top: 50%;
+            right: -800px;
+            transform: translateY(-50%);
+            z-index: 1000;
+            animation: finale-enterprise-swoosh 2.5s ease-in-out both;
+          }
+
+          .finale-enterprise {
+            width: 800px;
+            height: 400px;
+            position: relative;
+            filter: drop-shadow(0 0 50px rgba(255, 255, 255, 0.8));
+          }
+
+          .finale-enterprise-body {
+            width: 100%;
+            height: 100%;
+            position: relative;
+          }
+
+          .finale-saucer-section {
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(135deg, #888, #ccc, #fff);
+            border-radius: 50%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            box-shadow: 
+              0 0 100px rgba(255, 255, 255, 0.6),
+              inset 0 0 100px rgba(255, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 5px solid #bbb;
+          }
+
+          .sportya-text {
+            font-family: 'Arial Black', Arial, sans-serif;
+            font-size: 3rem;
+            font-weight: 900;
+            color: #003366;
+            text-shadow: 
+              0 0 20px rgba(255, 255, 255, 0.8),
+              2px 2px 4px rgba(0, 0, 0, 0.5);
+            letter-spacing: 0.1em;
+            transform: perspective(200px) rotateX(20deg);
+          }
+
+          .finale-engineering-section {
+            width: 300px;
+            height: 80px;
+            background: linear-gradient(135deg, #666, #999, #ccc);
+            border-radius: 40px;
+            position: absolute;
+            top: 200px;
+            left: 350px;
+            box-shadow: 0 0 40px rgba(255, 255, 255, 0.4);
+            border: 3px solid #777;
+          }
+
+          .finale-nacelle {
+            width: 200px;
+            height: 40px;
+            background: linear-gradient(135deg, #444, #777, #aaa);
+            border-radius: 20px;
+            position: absolute;
+            left: 500px;
+            border: 2px solid #555;
+          }
+
+          .finale-left-nacelle {
+            top: 120px;
+            box-shadow: 
+              0 0 50px #00aaff,
+              0 0 100px #00aaff;
+            animation: nacelle-pulse 0.5s ease-in-out infinite alternate;
+          }
+
+          .finale-right-nacelle {
+            top: 280px;
+            box-shadow: 
+              0 0 50px #00aaff,
+              0 0 100px #00aaff;
+            animation: nacelle-pulse 0.5s ease-in-out infinite alternate 0.25s;
+          }
+
+          @keyframes finale-enterprise-swoosh {
+            0% { 
+              right: -800px; 
+              transform: translateY(-50%) scale(0.8) rotate(10deg);
+              opacity: 0;
+            }
+            20% { 
+              right: 50%; 
+              transform: translateY(-50%) scale(1.2) rotate(0deg);
+              opacity: 1;
+            }
+            100% { 
+              right: calc(100% + 800px); 
+              transform: translateY(-50%) scale(0.8) rotate(-10deg);
+              opacity: 0.8;
+            }
+          }
+
+          @keyframes nacelle-pulse {
+            0% { 
+              box-shadow: 
+                0 0 50px #00aaff,
+                0 0 100px #00aaff;
+            }
+            100% { 
+              box-shadow: 
+                0 0 80px #00aaff,
+                0 0 150px #00aaff,
+                0 0 200px rgba(0, 170, 255, 0.5);
+            }
           }
 
           /* Federation Logo */
@@ -439,7 +584,7 @@ export default function Home() {
             height: 100%;
             pointer-events: none;
             opacity: 0;
-            animation: warp-activate 2s ease-in-out 5s both;
+            animation: warp-activate 2s ease-in-out 6s both;
           }
 
           .warp-line {
