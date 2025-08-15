@@ -31,6 +31,7 @@ export interface Match {
   drawId: string
   drawName: string
   roundName: string
+  gameType: 'Singles' | 'Doubles'
   player1Id?: string
   player1Name?: string
   player2Id?: string
@@ -44,10 +45,8 @@ export interface Match {
   result?: string  // Live result display (e.g., "6-4, 3-2")
   duration?: number
   estimatedDuration?: number
-  isDoubles?: boolean
   walkoverReason?: string
   notes?: string
-  priority?: 'high' | 'medium' | 'low'
   createdAt: Date
   updatedAt: Date
 }
@@ -71,6 +70,9 @@ export interface Blocker {
 export interface TournamentDraw {
   id: string
   name: string
+  level: number  // Sportya level (5, 6, 7, etc.)
+  drawModel: 'Groups' | 'Eliminatory'
+  restrictions: string[]  // e.g., "Age over 18", "Premium accounts only"
   format: 'single-elimination' | 'double-elimination' | 'round-robin'
   category: 'mens-singles' | 'womens-singles' | 'mens-doubles' | 'womens-doubles' | 'mixed-doubles'
   maxPlayers: number
@@ -145,6 +147,7 @@ export interface TournamentState {
   selectedDate: string
   loading: boolean
   error: string | null
+  lastRefreshTime: Date | null
 }
 
 export interface TournamentContextType {
@@ -166,6 +169,7 @@ export interface TournamentContextType {
   clearConflicts: () => void
   applySchedule: () => void
   resetSchedule: () => void
+  setLastRefreshTime: (time: Date) => void
 }
 
 // Action types for reducer
@@ -186,6 +190,7 @@ export type TournamentAction =
   | { type: 'CLEAR_CONFLICTS' }
   | { type: 'APPLY_SCHEDULE'; payload: Match[] }
   | { type: 'RESET_SCHEDULE' }
+  | { type: 'SET_LAST_REFRESH_TIME'; payload: Date }
 
 // Configuration types
 export interface TournamentConfiguration {

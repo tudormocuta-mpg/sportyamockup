@@ -7,7 +7,7 @@ const MatchStatusTracker: React.FC = () => {
   const { state, updateMatchStatus, updateMatch } = useTournament()
   const [selectedStatus, setSelectedStatus] = useState<MatchStatus | 'all'>('all')
   const [selectedDate, setSelectedDate] = useState<string>('all')
-  const [sortBy, setSortBy] = useState<'time' | 'status' | 'court' | 'priority'>('time')
+  const [sortBy, setSortBy] = useState<'time' | 'status' | 'court'>('time')
   const [showStatusHistory, setShowStatusHistory] = useState(false)
 
   // Get available dates
@@ -39,11 +39,6 @@ const MatchStatusTracker: React.FC = () => {
           return a.status.localeCompare(b.status)
         case 'court':
           return (a.courtName || '').localeCompare(b.courtName || '')
-        case 'priority':
-          const priorityOrder = { high: 3, medium: 2, low: 1 }
-          const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] || 0
-          const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] || 0
-          return bPriority - aPriority
         default:
           return 0
       }
@@ -93,15 +88,6 @@ const MatchStatusTracker: React.FC = () => {
     }
   }
 
-  // Get priority color
-  const getPriorityColor = (priority?: string): string => {
-    switch (priority) {
-      case 'high': return 'bg-red-100 text-red-800'
-      case 'medium': return 'bg-yellow-100 text-yellow-800'
-      case 'low': return 'bg-green-100 text-green-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
 
   // Handle status change
   const handleStatusChange = (matchId: string, newStatus: MatchStatus) => {
@@ -214,7 +200,6 @@ const MatchStatusTracker: React.FC = () => {
                 <option value="time">Time</option>
                 <option value="status">Status</option>
                 <option value="court">Court</option>
-                <option value="priority">Priority</option>
               </select>
             </div>
 
@@ -275,7 +260,7 @@ const MatchStatusTracker: React.FC = () => {
                   <div className="flex items-center space-x-2 mb-3">
                     <UserIcon className="w-4 h-4 text-blue-500" />
                     <span className="text-sm font-medium text-gray-900">{formatPlayers(match)}</span>
-                    {match.isDoubles && (
+                    {match.gameType === 'Doubles' && (
                       <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">Doubles</span>
                     )}
                   </div>
@@ -295,11 +280,6 @@ const MatchStatusTracker: React.FC = () => {
                   </div>
                   
                   {/* Priority */}
-                  {match.priority && (
-                    <div className={`px-3 py-1 rounded-full text-xs font-bold ${getPriorityColor(match.priority)}`}>
-                      {match.priority.toUpperCase()} PRIORITY
-                    </div>
-                  )}
                   
                   {/* Status Change Actions */}
                   <div className="flex flex-wrap gap-2">

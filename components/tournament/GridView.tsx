@@ -1,33 +1,99 @@
 import React, { useState, useEffect } from 'react'
-import { useTournament } from '../../contexts/TournamentContext'
+import { useTournament, getDrawColor } from '../../contexts/TournamentContext'
 import { Match, Blocker } from '../../types/tournament'
 import { ExclamationTriangleIcon, ClockIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
 
 const GridView: React.FC = () => {
-  const { state, moveMatch, setSelectedMatch, checkConflicts } = useTournament()
+  const { state, moveMatch, setSelectedMatch, checkConflicts, setSelectedDate, setLastRefreshTime } = useTournament()
   const [draggedMatch, setDraggedMatch] = useState<Match | null>(null)
   const [dragOverCell, setDragOverCell] = useState<{ courtId: string; timeSlot: string } | null>(null)
+  const [dragOverMatch, setDragOverMatch] = useState<Match | null>(null)
+  const [dragMode, setDragMode] = useState<'move' | 'swap' | 'invalid'>('move')
   const [hoveredMatch, setHoveredMatch] = useState<string | null>(null)
   const [animatingCells, setAnimatingCells] = useState<Set<string>>(new Set())
   const [courtOrder, setCourtOrder] = useState<string[]>(state.courts.map(c => c.id))
   const [hoveredCourt, setHoveredCourt] = useState<string | null>(null)
+  const [timeInterval, setTimeInterval] = useState<15 | 30>(30)
+  const [showDrawColors, setShowDrawColors] = useState<boolean>(false)
   
   // Update court order when courts change
   useEffect(() => {
     setCourtOrder(state.courts.map(c => c.id))
   }, [state.courts])
+
+  // Auto-refresh every 5 minutes
+  useEffect(() => {
+    const refreshData = () => {
+      setLastRefreshTime(new Date())
+      // Force a re-check of conflicts to simulate data refresh
+      checkConflicts()
+    }
+
+    // Set up the interval for 5 minutes (300000 ms)
+    const intervalId = setInterval(refreshData, 300000)
+
+    // Cleanup interval on component unmount
+    return () => clearInterval(intervalId)
+  }, [checkConflicts, setLastRefreshTime])
   
   // Get ordered courts
   const orderedCourts = courtOrder
     .map(id => state.courts.find(c => c.id === id))
     .filter((court): court is NonNullable<typeof court> => Boolean(court))
 
-  // Generate time slots from 8:00 to 20:00 with 30-minute intervals
+  // Get tournament timeframe from wizard data
+  const getTournamentTimeframe = () => {
+    // Wizard court availability data structure (mock data matching wizard configuration)
+    const wizardData = {
+      courtsByDay: {
+        '2024-08-15': [
+          { timeSlots: [{ startTime: '14:00', endTime: '20:00' }] }, // Court 3
+          { timeSlots: [{ startTime: '08:00', endTime: '12:00' }, { startTime: '16:00', endTime: '20:00' }] } // Practice Court
+        ],
+        '2024-08-16': [
+          { timeSlots: [{ startTime: '08:00', endTime: '20:00' }] }, // Court 3
+          { timeSlots: [{ startTime: '08:00', endTime: '20:00' }] }  // Practice Court
+        ],
+        '2024-08-17': [
+          { timeSlots: [{ startTime: '08:00', endTime: '20:00' }] }, // Court 3
+          { timeSlots: [{ startTime: '08:00', endTime: '20:00' }] }  // Practice Court
+        ]
+      }
+    }
+
+    let earliestStart = '24:00'
+    let latestEnd = '00:00'
+
+    // Iterate through all days and courts to find min/max times
+    Object.values(wizardData.courtsByDay).forEach(courts => {
+      courts.forEach(court => {
+        court.timeSlots.forEach(slot => {
+          if (slot.startTime < earliestStart) earliestStart = slot.startTime
+          if (slot.endTime > latestEnd) latestEnd = slot.endTime
+        })
+      })
+    })
+
+    // Convert to hours
+    const startHour = parseInt(earliestStart.split(':')[0])
+    const endHour = parseInt(latestEnd.split(':')[0])
+
+    return { startHour, endHour }
+  }
+
+  // Get timeframe from wizard data
+  const timeframe = getTournamentTimeframe()
+
+  // Generate time slots based on wizard timeframe with configurable intervals
   const generateTimeSlots = (): string[] => {
     const slots = []
-    for (let hour = 8; hour < 20; hour++) {
-      slots.push(`${hour.toString().padStart(2, '0')}:00`)
-      slots.push(`${hour.toString().padStart(2, '0')}:30`)
+    const intervalsPerHour = 60 / timeInterval
+    
+    for (let hour = timeframe.startHour; hour < timeframe.endHour; hour++) {
+      for (let i = 0; i < intervalsPerHour; i++) {
+        const minutes = i * timeInterval
+        slots.push(`${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`)
+      }
     }
     return slots
   }
@@ -97,7 +163,7 @@ const GridView: React.FC = () => {
   // Calculate how many slots a match spans
   const getMatchSlotSpan = (match: Match): number => {
     if (!match.estimatedDuration) return 1
-    return Math.ceil(match.estimatedDuration / 30) // 30-minute slots
+    return Math.ceil(match.estimatedDuration / timeInterval)
   }
   
   // Check if a time slot is within a match's duration
@@ -138,6 +204,53 @@ const GridView: React.FC = () => {
     )
   }
 
+  // Check if a match would overlap with any existing matches when placed at a position
+  const wouldMatchOverlap = (match: Match, courtId: string, startTime: string, excludeMatchId?: string): boolean => {
+    if (!match.estimatedDuration) return false
+    
+    const [startHour, startMin] = startTime.split(':').map(Number)
+    const startMinutes = startHour * 60 + startMin
+    const endMinutes = startMinutes + match.estimatedDuration
+    
+    return dayMatches.some(existingMatch => {
+      if (existingMatch.id === match.id || existingMatch.id === excludeMatchId) return false
+      if (existingMatch.courtId !== courtId) return false
+      if (!existingMatch.scheduledTime || !existingMatch.estimatedDuration) return false
+      
+      const [existingStartHour, existingStartMin] = existingMatch.scheduledTime.split(':').map(Number)
+      const existingStartMinutes = existingStartHour * 60 + existingStartMin
+      const existingEndMinutes = existingStartMinutes + existingMatch.estimatedDuration
+      
+      // Check for overlap
+      return (startMinutes < existingEndMinutes && endMinutes > existingStartMinutes)
+    })
+  }
+
+  // Check if a swap between two matches would be valid for both positions
+  const isValidSwap = (match1: Match, match2: Match): boolean => {
+    if (!match1.courtId || !match1.scheduledTime || !match2.courtId || !match2.scheduledTime) return false
+    
+    // Cannot swap if either match is completed or in-progress
+    if (match1.status === 'completed' || match1.status === 'in-progress' || 
+        match2.status === 'completed' || match2.status === 'in-progress') {
+      return false
+    }
+    
+    // Check if match1 can go to match2's position
+    const match1Valid = !wouldMatchOverlap(match1, match2.courtId, match2.scheduledTime, match2.id) &&
+                       isCourtTimeSlotAvailable(match2.courtId, match2.scheduledTime) &&
+                       !getBlockerForSlot(match2.courtId, match2.scheduledTime) &&
+                       !checkPlayerConflict(match1, match2.scheduledTime)
+    
+    // Check if match2 can go to match1's position  
+    const match2Valid = !wouldMatchOverlap(match2, match1.courtId, match1.scheduledTime, match1.id) &&
+                       isCourtTimeSlotAvailable(match1.courtId, match1.scheduledTime) &&
+                       !getBlockerForSlot(match1.courtId, match1.scheduledTime) &&
+                       !checkPlayerConflict(match2, match1.scheduledTime)
+    
+    return match1Valid && match2Valid
+  }
+
   // Check if drop is valid with enhanced conflict detection
   const isValidDrop = (courtId: string, timeSlot: string): boolean => {
     if (!draggedMatch) return false
@@ -154,9 +267,15 @@ const GridView: React.FC = () => {
     const blocker = getBlockerForSlot(courtId, timeSlot)
     if (blocker) return false
     
-    // Check if slot already has a match
+    // Check if slot already has a match - if so, it's a potential swap
     const existingMatch = getMatchForSlot(courtId, timeSlot)
-    if (existingMatch && existingMatch.id !== draggedMatch.id) return false
+    if (existingMatch && existingMatch.id !== draggedMatch.id) {
+      // This is a swap scenario - validate both positions
+      return isValidSwap(draggedMatch, existingMatch)
+    }
+    
+    // Check for duration-based overlaps
+    if (wouldMatchOverlap(draggedMatch, courtId, timeSlot)) return false
     
     // Check for player conflicts
     const hasPlayerConflict = checkPlayerConflict(draggedMatch, timeSlot)
@@ -185,24 +304,88 @@ const GridView: React.FC = () => {
   const handleDragOver = (e: React.DragEvent, courtId: string, timeSlot: string) => {
     e.preventDefault()
     
-    if (isValidDrop(courtId, timeSlot)) {
+    if (!draggedMatch) return
+    
+    const existingMatch = getMatchForSlot(courtId, timeSlot)
+    const isValidDropZone = isValidDrop(courtId, timeSlot)
+    
+    if (existingMatch && existingMatch.id !== draggedMatch.id) {
+      // Dragging over another match - check if swap is valid
+      if (isValidSwap(draggedMatch, existingMatch)) {
+        e.dataTransfer.dropEffect = 'move'
+        setDragMode('swap')
+        setDragOverMatch(existingMatch)
+        setDragOverCell({ courtId, timeSlot })
+      } else {
+        e.dataTransfer.dropEffect = 'none'
+        setDragMode('invalid')
+        setDragOverMatch(existingMatch)
+        setDragOverCell({ courtId, timeSlot })
+      }
+    } else if (isValidDropZone) {
+      // Dragging over empty valid slot
       e.dataTransfer.dropEffect = 'move'
+      setDragMode('move')
+      setDragOverMatch(null)
       setDragOverCell({ courtId, timeSlot })
     } else {
+      // Dragging over invalid location
       e.dataTransfer.dropEffect = 'none'
+      setDragMode('invalid')
+      setDragOverMatch(null)
+      setDragOverCell({ courtId, timeSlot })
     }
   }
 
   const handleDragLeave = () => {
     setDragOverCell(null)
+    setDragOverMatch(null)
+    setDragMode('move')
   }
 
   const handleDrop = (e: React.DragEvent, courtId: string, timeSlot: string) => {
     e.preventDefault()
-    setDragOverCell(null)
     
-    if (draggedMatch && isValidDrop(courtId, timeSlot)) {
-      // Add animation to the cell
+    if (!draggedMatch || !isValidDrop(courtId, timeSlot)) {
+      // Reset drag state
+      setDragOverCell(null)
+      setDragOverMatch(null)
+      setDragMode('move')
+      setDraggedMatch(null)
+      return
+    }
+    
+    const existingMatch = getMatchForSlot(courtId, timeSlot)
+    
+    if (existingMatch && existingMatch.id !== draggedMatch.id && dragMode === 'swap') {
+      // Perform match swap
+      const draggedOriginalCourt = draggedMatch.courtId
+      const draggedOriginalTime = draggedMatch.scheduledTime
+      
+      if (draggedOriginalCourt && draggedOriginalTime) {
+        // Animate both cells
+        const cellKey1 = `${courtId}-${timeSlot}`
+        const cellKey2 = `${draggedOriginalCourt}-${draggedOriginalTime}`
+        setAnimatingCells(prev => new Set(prev).add(cellKey1).add(cellKey2))
+        
+        // Swap the matches
+        moveMatch(draggedMatch.id, courtId, timeSlot)
+        moveMatch(existingMatch.id, draggedOriginalCourt, draggedOriginalTime)
+        
+        checkConflicts()
+        
+        // Remove animations after delay
+        setTimeout(() => {
+          setAnimatingCells(prev => {
+            const newSet = new Set(prev)
+            newSet.delete(cellKey1)
+            newSet.delete(cellKey2)
+            return newSet
+          })
+        }, 500)
+      }
+    } else {
+      // Regular move to empty slot
       const cellKey = `${courtId}-${timeSlot}`
       setAnimatingCells(prev => new Set(prev).add(cellKey))
       
@@ -218,12 +401,19 @@ const GridView: React.FC = () => {
         })
       }, 500)
     }
+    
+    // Reset drag state
+    setDragOverCell(null)
+    setDragOverMatch(null)
+    setDragMode('move')
     setDraggedMatch(null)
   }
 
   const handleDragEnd = () => {
     setDraggedMatch(null)
     setDragOverCell(null)
+    setDragOverMatch(null)
+    setDragMode('move')
   }
 
   // Get cell CSS classes with enhanced visual feedback
@@ -242,10 +432,14 @@ const GridView: React.FC = () => {
       classes += ' bg-gray-200 opacity-60 cursor-not-allowed border-dashed border-gray-300'
     } else if (isAnimating) {
       classes += ' animate-pulse bg-green-50'
-    } else if (isDragOver && isValidDropZone) {
-      classes += ' bg-green-100 border-2 border-green-400 shadow-lg'
-    } else if (isDragOver && isInvalidDropZone) {
-      classes += ' bg-red-100 border-2 border-red-400'
+    } else if (isDragOver) {
+      if (dragMode === 'swap') {
+        classes += ' bg-purple-100 border-2 border-purple-400 shadow-lg'
+      } else if (dragMode === 'move' && isValidDropZone) {
+        classes += ' bg-green-100 border-2 border-green-400 shadow-lg'
+      } else if (dragMode === 'invalid') {
+        classes += ' bg-red-100 border-2 border-red-400'
+      }
     } else if (draggedMatch && isValidDropZone) {
       classes += ' bg-blue-50 border-blue-200'
     } else {
@@ -267,33 +461,152 @@ const GridView: React.FC = () => {
     return 'TBD vs TBD'
   }
 
-  // Get status color with improved visual hierarchy
-  const getStatusColor = (status: string): string => {
-    switch (status) {
-      case 'scheduled': return 'bg-gradient-to-br from-blue-100 to-blue-200 border-blue-400 shadow-sm hover:shadow-md'
-      case 'in-progress': return 'bg-gradient-to-br from-green-100 to-green-200 border-green-400 shadow-md animate-pulse'
-      case 'completed': return 'bg-gradient-to-br from-gray-100 to-gray-200 border-gray-400 opacity-75'
-      case 'postponed': return 'bg-gradient-to-br from-yellow-100 to-yellow-200 border-yellow-400 shadow-sm'
-      default: return 'bg-gradient-to-br from-blue-100 to-blue-200 border-blue-400 shadow-sm'
+  // Get status color with draw-specific colors or uniform colors based on status
+  const getStatusColor = (match: Match): string => {
+    if (showDrawColors && match.drawId) {
+      // Use centralized draw color mapping with subtle colors
+      const baseColor = getDrawColor(match.drawId)
+      
+      // Add status-specific modifications for better visibility
+      switch (match.status) {
+        case 'scheduled':
+          return `${baseColor} shadow-sm hover:shadow-md transition-all border-2`
+        case 'in-progress':
+          return `${baseColor} shadow-lg animate-pulse ring-2 ring-offset-1 ring-green-400 border-2`
+        case 'completed':
+          return `${baseColor} opacity-50 border`
+        case 'postponed':
+          return `${baseColor} opacity-75 border-dashed border-2`
+        default:
+          return `${baseColor} shadow-sm border`
+      }
+    }
+    
+    // Default uniform colors (status-based) - also using softer colors
+    switch (match.status) {
+      case 'scheduled': return 'bg-blue-100 border-2 border-blue-300 text-blue-900 shadow-sm hover:shadow-md'
+      case 'in-progress': return 'bg-green-100 border-2 border-green-400 text-green-900 shadow-md animate-pulse'
+      case 'completed': return 'bg-gray-100 border border-gray-300 text-gray-700 opacity-75'
+      case 'postponed': return 'bg-yellow-100 border-2 border-yellow-300 text-yellow-900 shadow-sm'
+      default: return 'bg-blue-100 border-2 border-blue-300 text-blue-900 shadow-sm'
     }
   }
 
-  // Get priority icon
-  const getPriorityIcon = (priority?: string) => {
-    switch (priority) {
-      case 'high':
-        return <ExclamationTriangleIcon className="w-3 h-3 text-red-600" />
-      case 'medium':
-        return <ClockIcon className="w-3 h-3 text-yellow-600" />
-      case 'low':
-        return <CheckCircleIcon className="w-3 h-3 text-green-600" />
-      default:
-        return null
-    }
+  // Check if match conflicts with blocker
+  const checkMatchBlockerConflict = (match: Match): boolean => {
+    if (!match.scheduledTime || !match.scheduledDate || !match.courtId) return false
+    
+    // Check if match overlaps with any blocker
+    return dayBlockers.some(blocker => {
+      if (blocker.courtId !== match.courtId || blocker.date !== match.scheduledDate) return false
+      
+      // Check time overlap
+      const matchStart = match.scheduledTime
+      if (!matchStart) return false
+      const [matchHour, matchMin] = matchStart.split(':').map(Number)
+      const matchEndMinutes = matchHour * 60 + matchMin + (match.estimatedDuration || 90)
+      const matchEndTime = `${Math.floor(matchEndMinutes / 60).toString().padStart(2, '0')}:${(matchEndMinutes % 60).toString().padStart(2, '0')}`
+      
+      return (
+        (matchStart >= blocker.startTime && matchStart < blocker.endTime) ||
+        (matchEndTime > blocker.startTime && matchEndTime <= blocker.endTime) ||
+        (matchStart <= blocker.startTime && matchEndTime >= blocker.endTime)
+      )
+    })
   }
+
+  // Get available dates (only days with scheduled matches)
+  const getAvailableDates = () => {
+    const allDates = state.matches
+      .map(match => match.scheduledDate)
+      .filter((date): date is string => Boolean(date)) // Filter out null/undefined dates with type guard
+      .filter((date, index, arr) => arr.indexOf(date) === index) // Remove duplicates
+      .sort() // Sort chronologically
+    
+    return allDates.map(date => ({
+      value: date,
+      label: new Date(date).toLocaleDateString('en-US', { 
+        weekday: 'short', 
+        month: 'short', 
+        day: 'numeric' 
+      })
+    }))
+  }
+
+  const availableDates = getAvailableDates()
 
   return (
     <div className="grid-view-container overflow-auto h-full">
+      {/* Date and Time Interval Selector */}
+      <div className="bg-white border-b border-gray-200 p-4 sticky top-0 z-20">
+        <div className="flex items-center space-x-6">
+          {/* Date Selector */}
+          <div className="flex items-center space-x-2">
+            <label htmlFor="grid-date-select" className="text-sm font-medium text-gray-700">
+              Date:
+            </label>
+            <select
+              id="grid-date-select"
+              value={state.selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              {availableDates.map(date => (
+                <option key={date.value} value={date.value}>
+                  {date.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Time Interval Selector */}
+          <div className="flex items-center space-x-2">
+            <span className="text-sm font-medium text-gray-700">Time Interval:</span>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setTimeInterval(15)}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  timeInterval === 15
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                15 min
+              </button>
+              <button
+                onClick={() => setTimeInterval(30)}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  timeInterval === 30
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                30 min
+              </button>
+            </div>
+          </div>
+
+          {/* Draw Colors Toggle */}
+          <div className="flex items-center space-x-2">
+            <span className="text-sm font-medium text-gray-700">Colors:</span>
+            <button
+              onClick={() => setShowDrawColors(!showDrawColors)}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                showDrawColors
+                  ? 'bg-green-600 text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {showDrawColors ? 'By Draw' : 'Uniform'}
+            </button>
+          </div>
+          
+          <div className="ml-auto text-sm text-gray-500">
+            Showing {timeSlots.length} time slots
+          </div>
+        </div>
+      </div>
+      
       <div className="min-w-full">
         <table className="tournament-grid w-full">
           <thead className="sticky top-0 bg-gray-100 z-10 shadow-sm">
@@ -371,11 +684,23 @@ const GridView: React.FC = () => {
                     >
                       {match && isMatchStart && (
                         <div
-                          className={`match-card rounded-lg border-2 p-2 cursor-move transition-all duration-200 transform ${getStatusColor(match.status)} ${
-                            hoveredMatch === match.id ? 'scale-105 z-10' : ''
-                          } ${draggedMatch?.id === match.id ? 'opacity-50' : ''}`}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, match)}
+                          className={`match-card rounded-lg border-2 p-2 transition-all duration-200 transform ${getStatusColor(match)} ${
+                            match.status === 'completed' || match.status === 'in-progress' ? 'cursor-not-allowed' : 'cursor-move'
+                          } ${
+                            hoveredMatch === match.id && match.status !== 'completed' && match.status !== 'in-progress' ? 'scale-105 z-10' : ''
+                          } ${draggedMatch?.id === match.id ? 'opacity-50' : ''} ${
+                            dragOverMatch?.id === match.id && dragMode === 'swap' ? 'ring-2 ring-purple-400 ring-offset-1 shadow-lg scale-105' : ''
+                          } ${
+                            dragOverMatch?.id === match.id && dragMode === 'invalid' ? 'ring-2 ring-red-400 ring-offset-1 shadow-lg' : ''
+                          }`}
+                          draggable={match.status !== 'completed' && match.status !== 'in-progress'}
+                          onDragStart={(e) => {
+                            if (match.status === 'completed' || match.status === 'in-progress') {
+                              e.preventDefault()
+                              return
+                            }
+                            handleDragStart(e, match)
+                          }}
                           onDragEnd={handleDragEnd}
                           onClick={() => setSelectedMatch(match)}
                           onMouseEnter={() => setHoveredMatch(match.id)}
@@ -386,7 +711,12 @@ const GridView: React.FC = () => {
                             <div className="font-semibold text-xs truncate flex-1">
                               {match.drawName}
                             </div>
-                            {getPriorityIcon(match.priority)}
+                            {checkMatchBlockerConflict(match) && (
+                              <ExclamationTriangleIcon 
+                                className="w-4 h-4 text-red-600 animate-pulse" 
+                                title="Warning: Match conflicts with a court blocker"
+                              />
+                            )}
                           </div>
                           <div className="truncate text-gray-700 text-xs mt-1">
                             {formatMatchName(match)}
@@ -412,6 +742,13 @@ const GridView: React.FC = () => {
                               </span>
                             )}
                           </div>
+                          {match.roundName && (
+                            <div className="mt-1 pt-1 border-t border-gray-300">
+                              <span className="text-xs text-gray-600 font-medium">
+                                {match.roundName}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       )}
                       
@@ -461,61 +798,6 @@ const GridView: React.FC = () => {
             ))}
           </tbody>
         </table>
-      </div>
-      
-      {/* Enhanced Legend and Statistics */}
-      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="p-4 bg-white rounded-lg shadow-sm border border-gray-200">
-          <h4 className="font-semibold text-gray-800 mb-3">Match Status</h4>
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div className="flex items-center">
-              <div className="w-4 h-4 bg-gradient-to-br from-blue-100 to-blue-200 border-2 border-blue-400 rounded mr-2"></div>
-              <span className="text-gray-700">Scheduled</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-4 h-4 bg-gradient-to-br from-green-100 to-green-200 border-2 border-green-400 rounded mr-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full m-auto animate-pulse"></div>
-              </div>
-              <span className="text-gray-700">In Progress</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-4 h-4 bg-gradient-to-br from-gray-100 to-gray-200 border-2 border-gray-400 rounded mr-2 opacity-75"></div>
-              <span className="text-gray-700">Completed</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-4 h-4 bg-gradient-to-br from-yellow-100 to-yellow-200 border-2 border-yellow-400 rounded mr-2"></div>
-              <span className="text-gray-700">Postponed</span>
-            </div>
-          </div>
-        </div>
-        
-        <div className="p-4 bg-white rounded-lg shadow-sm border border-gray-200">
-          <h4 className="font-semibold text-gray-800 mb-3">Quick Stats</h4>
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div>
-              <span className="text-gray-600">Total Matches:</span>
-              <span className="ml-2 font-semibold text-gray-900">{dayMatches.length}</span>
-            </div>
-            <div>
-              <span className="text-gray-600">Scheduled:</span>
-              <span className="ml-2 font-semibold text-blue-600">
-                {dayMatches.filter(m => m.status === 'scheduled').length}
-              </span>
-            </div>
-            <div>
-              <span className="text-gray-600">In Progress:</span>
-              <span className="ml-2 font-semibold text-green-600">
-                {dayMatches.filter(m => m.status === 'in-progress').length}
-              </span>
-            </div>
-            <div>
-              <span className="text-gray-600">Completed:</span>
-              <span className="ml-2 font-semibold text-gray-600">
-                {dayMatches.filter(m => m.status === 'completed').length}
-              </span>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   )

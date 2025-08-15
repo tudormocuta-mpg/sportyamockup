@@ -52,8 +52,8 @@ const ScheduleGenerationWizard: React.FC = () => {
     tournamentEnd: '2024-08-17',
     matchDuration: 90,
     bufferTime: 15,
-    minRestPeriod: 90,
-    maxMatchesPerPlayerPerDay: 3,
+    minRestPeriod: 120, // Changed to match recommended option
+    maxMatchesPerPlayerPerDay: 2, // Changed to a reasonable default
     
     // Court Allocation - Demo data with limited availability
     courtsByDay: {
@@ -598,14 +598,14 @@ const ScheduleGenerationWizard: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Buffer Time Between Matches (minutes)
                   </label>
-                  <input
-                    type="number"
+                  <select
                     value={wizardData.bufferTime}
                     onChange={(e) => setWizardData(prev => ({ ...prev, bufferTime: parseInt(e.target.value) }))}
-                    min="5"
-                    max="60"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                  />
+                  >
+                    <option value={15}>15 minutes</option>
+                    <option value={30}>30 minutes</option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -618,15 +618,15 @@ const ScheduleGenerationWizard: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Minimum Rest Period (minutes)
                   </label>
-                  <input
-                    type="number"
+                  <select
                     value={wizardData.minRestPeriod}
                     onChange={(e) => setWizardData(prev => ({ ...prev, minRestPeriod: parseInt(e.target.value) }))}
-                    min="30"
-                    max="240"
-                    step="15"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                  />
+                  >
+                    <option value={60}>60 minutes</option>
+                    <option value={120}>120 minutes (recommended)</option>
+                    <option value={180}>180 minutes</option>
+                  </select>
                   <div className="mt-1 text-xs text-gray-500">
                     Time between consecutive matches for the same player
                   </div>
@@ -635,14 +635,16 @@ const ScheduleGenerationWizard: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Max Matches Per Player Per Day
                   </label>
-                  <input
-                    type="number"
+                  <select
                     value={wizardData.maxMatchesPerPlayerPerDay}
                     onChange={(e) => setWizardData(prev => ({ ...prev, maxMatchesPerPlayerPerDay: parseInt(e.target.value) }))}
-                    min="1"
-                    max="8"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                  />
+                  >
+                    <option value={1}>1 match</option>
+                    <option value={2}>2 matches</option>
+                    <option value={3}>3 matches</option>
+                    <option value={4}>4 matches</option>
+                  </select>
                   <div className="mt-1 text-xs text-gray-500">
                     Maximum number of matches per player in a single day
                   </div>

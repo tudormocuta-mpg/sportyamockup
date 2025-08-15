@@ -3,16 +3,16 @@ import { useTournament } from '../../contexts/TournamentContext'
 import { Match, MatchStatus } from '../../types/tournament'
 import { ChevronUpIcon, ChevronDownIcon, MagnifyingGlassIcon, FunnelIcon, ArrowPathIcon, CheckCircleIcon, ClockIcon, PlayIcon, PauseIcon, ExclamationTriangleIcon, MapPinIcon } from '@heroicons/react/24/outline'
 
-type SortField = 'time' | 'court' | 'draw' | 'players' | 'status' | 'priority'
+type SortField = 'time' | 'court' | 'draw' | 'drawModel' | 'gameType' | 'players' | 'status'
 type SortDirection = 'asc' | 'desc'
 
 const ListView: React.FC = () => {
   const { state, updateMatch, updateMatchStatus, setSelectedMatch } = useTournament()
-  const [selectedMatches, setSelectedMatches] = useState<Set<string>>(new Set())
   const [sortField, setSortField] = useState<SortField>('time')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
   const [filterStatus, setFilterStatus] = useState<MatchStatus | 'all'>('all')
   const [filterDraw, setFilterDraw] = useState<string>('all')
+  const [filterGameType, setFilterGameType] = useState<'Singles' | 'Doubles' | 'all'>('all')
   const [searchTerm, setSearchTerm] = useState('')
 
   // Filter and sort matches
@@ -25,7 +25,11 @@ const ListView: React.FC = () => {
     }
     
     if (filterDraw !== 'all') {
-      filtered = filtered.filter(match => match.drawId === filterDraw)
+      filtered = filtered.filter(match => match.drawName === filterDraw)
+    }
+
+    if (filterGameType !== 'all') {
+      filtered = filtered.filter(match => match.gameType === filterGameType)
     }
 
     if (searchTerm) {
@@ -56,6 +60,16 @@ const ListView: React.FC = () => {
           aValue = a.drawName
           bValue = b.drawName
           break
+        case 'drawModel':
+          const drawA = state.draws.find(d => d.id === a.drawId)
+          const drawB = state.draws.find(d => d.id === b.drawId)
+          aValue = drawA?.drawModel || ''
+          bValue = drawB?.drawModel || ''
+          break
+        case 'gameType':
+          aValue = a.gameType
+          bValue = b.gameType
+          break
         case 'players':
           aValue = `${a.player1Name || ''} ${a.player2Name || ''}`
           bValue = `${b.player1Name || ''} ${b.player2Name || ''}`
@@ -63,11 +77,6 @@ const ListView: React.FC = () => {
         case 'status':
           aValue = a.status
           bValue = b.status
-          break
-        case 'priority':
-          const priorityOrder = { high: 3, medium: 2, low: 1 }
-          aValue = priorityOrder[a.priority as keyof typeof priorityOrder] || 0
-          bValue = priorityOrder[b.priority as keyof typeof priorityOrder] || 0
           break
       }
 
@@ -77,7 +86,7 @@ const ListView: React.FC = () => {
     })
 
     return filtered
-  }, [state.matches, state.selectedDate, filterStatus, filterDraw, searchTerm, sortField, sortDirection])
+  }, [state.matches, state.draws, state.selectedDate, filterStatus, filterDraw, filterGameType, searchTerm, sortField, sortDirection])
 
   // Handle sorting
   const handleSort = (field: SortField) => {
@@ -89,41 +98,6 @@ const ListView: React.FC = () => {
     }
   }
 
-  // Handle row selection
-  const handleRowSelect = (matchId: string, selected: boolean) => {
-    const newSelection = new Set(selectedMatches)
-    if (selected) {
-      newSelection.add(matchId)
-    } else {
-      newSelection.delete(matchId)
-    }
-    setSelectedMatches(newSelection)
-  }
-
-  // Handle select all
-  const handleSelectAll = (selected: boolean) => {
-    if (selected) {
-      setSelectedMatches(new Set(filteredAndSortedMatches.map(match => match.id)))
-    } else {
-      setSelectedMatches(new Set())
-    }
-  }
-
-  // Bulk operations
-  const handleBulkStatusChange = (status: MatchStatus) => {
-    selectedMatches.forEach(matchId => {
-      updateMatchStatus(matchId, status)
-    })
-    setSelectedMatches(new Set())
-  }
-
-  const handleBulkCourtAssignment = (courtId: string) => {
-    const court = state.courts.find(c => c.id === courtId)
-    selectedMatches.forEach(matchId => {
-      updateMatch(matchId, { courtId, courtName: court?.name })
-    })
-    setSelectedMatches(new Set())
-  }
 
   // Get status badge classes
   const getStatusBadge = (status: MatchStatus): string => {
@@ -138,16 +112,6 @@ const ListView: React.FC = () => {
     }
   }
 
-  // Get priority badge classes
-  const getPriorityBadge = (priority?: string): string => {
-    const baseClasses = 'px-2 py-1 rounded text-xs font-medium'
-    switch (priority) {
-      case 'high': return `${baseClasses} bg-red-100 text-red-700`
-      case 'medium': return `${baseClasses} bg-yellow-100 text-yellow-700`
-      case 'low': return `${baseClasses} bg-green-100 text-green-700`
-      default: return `${baseClasses} bg-gray-100 text-gray-700`
-    }
-  }
 
   // Format player names
   const formatPlayers = (match: Match): string => {
@@ -179,7 +143,7 @@ const ListView: React.FC = () => {
             <div className="flex items-center space-x-6">
               <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
-                <span className="text-sm font-medium text-gray-700">Total: {filteredAndSortedMatches.length} matches</span>
+                <span className="text-sm font-medium text-gray-700">Total listed: {filteredAndSortedMatches.length} matches</span>
               </div>
               <div className="flex items-center space-x-2">
                 <CheckCircleIcon className="w-4 h-4 text-green-600" />
@@ -188,6 +152,10 @@ const ListView: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <PlayIcon className="w-4 h-4 text-blue-600" />
                 <span className="text-sm text-gray-600">{filteredAndSortedMatches.filter(m => m.status === 'in-progress').length} in progress</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <ClockIcon className="w-4 h-4 text-orange-600" />
+                <span className="text-sm text-gray-600">{filteredAndSortedMatches.filter(m => m.status === 'scheduled').length} scheduled</span>
               </div>
             </div>
             <div className="text-sm text-gray-500">
@@ -222,7 +190,6 @@ const ListView: React.FC = () => {
                   <option value="scheduled">Scheduled</option>
                   <option value="in-progress">In Progress</option>
                   <option value="completed">Completed</option>
-                  <option value="postponed">Postponed</option>
                   <option value="walkover">Walkover</option>
                 </select>
               </div>
@@ -233,9 +200,21 @@ const ListView: React.FC = () => {
                 className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm font-medium"
               >
                 <option value="all">All Draws</option>
-                {state.draws.map(draw => (
-                  <option key={draw.id} value={draw.id}>{draw.name}</option>
-                ))}
+                {Array.from(new Set(state.matches.map(match => match.drawName)))
+                  .sort()
+                  .map(drawName => (
+                    <option key={drawName} value={drawName}>{drawName}</option>
+                  ))}
+              </select>
+              
+              <select
+                value={filterGameType}
+                onChange={(e) => setFilterGameType(e.target.value as 'Singles' | 'Doubles' | 'all')}
+                className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm font-medium"
+              >
+                <option value="all">All Game Types</option>
+                <option value="Singles">Singles</option>
+                <option value="Doubles">Doubles</option>
               </select>
               
               <button
@@ -243,7 +222,7 @@ const ListView: React.FC = () => {
                   setSearchTerm('')
                   setFilterStatus('all')
                   setFilterDraw('all')
-                  setSelectedMatches(new Set())
+                  setFilterGameType('all')
                 }}
                 className="px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium flex items-center space-x-2"
                 title="Clear all filters"
@@ -254,72 +233,6 @@ const ListView: React.FC = () => {
             </div>
           </div>
 
-          {/* Enhanced Bulk Operations */}
-          {selectedMatches.size > 0 && (
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-xl p-4 shadow-sm">
-              <div className="flex flex-wrap gap-3 items-center">
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold text-sm">
-                    {selectedMatches.size}
-                  </div>
-                  <span className="text-sm font-bold text-blue-900">
-                    {selectedMatches.size === 1 ? 'match' : 'matches'} selected
-                  </span>
-                </div>
-                
-                <div className="h-6 w-px bg-blue-300"></div>
-                
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => handleBulkStatusChange('scheduled')}
-                    className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all duration-200 text-sm font-medium flex items-center space-x-1 hover:scale-105 shadow-sm"
-                  >
-                    <ClockIcon className="w-4 h-4" />
-                    <span>Schedule</span>
-                  </button>
-                  
-                  <button
-                    onClick={() => handleBulkStatusChange('in-progress')}
-                    className="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all duration-200 text-sm font-medium flex items-center space-x-1 hover:scale-105 shadow-sm"
-                  >
-                    <PlayIcon className="w-4 h-4" />
-                    <span>Start</span>
-                  </button>
-                  
-                  <button
-                    onClick={() => handleBulkStatusChange('postponed')}
-                    className="px-3 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-all duration-200 text-sm font-medium flex items-center space-x-1 hover:scale-105 shadow-sm"
-                  >
-                    <PauseIcon className="w-4 h-4" />
-                    <span>Postpone</span>
-                  </button>
-                  
-                  <select
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        handleBulkCourtAssignment(e.target.value)
-                        e.target.value = ''
-                      }
-                    }}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium bg-white shadow-sm hover:border-gray-400 transition-colors"
-                    defaultValue=""
-                  >
-                    <option value="">Assign Court...</option>
-                    {state.courts.map(court => (
-                      <option key={court.id} value={court.id}>{court.name} ({court.surface})</option>
-                    ))}
-                  </select>
-                  
-                  <button
-                    onClick={() => setSelectedMatches(new Set())}
-                    className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-all duration-200 text-sm font-medium hover:scale-105 shadow-sm"
-                  >
-                    Clear
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
@@ -328,15 +241,6 @@ const ListView: React.FC = () => {
         <table className="min-w-full divide-y divide-gray-200 bg-white shadow-sm">
           <thead className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 z-10 shadow-sm">
             <tr>
-              <th className="px-6 py-4 text-left">
-                <input
-                  type="checkbox"
-                  checked={selectedMatches.size === filteredAndSortedMatches.length && filteredAndSortedMatches.length > 0}
-                  onChange={(e) => handleSelectAll(e.target.checked)}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
-                />
-              </th>
-              
               <th 
                 className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200 transition-colors border-r border-gray-200 flex items-center space-x-1"
                 onClick={() => handleSort('time')}
@@ -362,9 +266,28 @@ const ListView: React.FC = () => {
                 onClick={() => handleSort('draw')}
               >
                 <div className="flex items-center space-x-1">
-                  <span>🏆</span>
                   <span>Draw</span>
                   <SortIcon field="draw" />
+                </div>
+              </th>
+              
+              <th 
+                className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200 transition-colors border-r border-gray-200"
+                onClick={() => handleSort('drawModel')}
+              >
+                <div className="flex items-center space-x-1">
+                  <span>Draw Model</span>
+                  <SortIcon field="drawModel" />
+                </div>
+              </th>
+              
+              <th 
+                className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200 transition-colors border-r border-gray-200"
+                onClick={() => handleSort('gameType')}
+              >
+                <div className="flex items-center space-x-1">
+                  <span>Game Type</span>
+                  <SortIcon field="gameType" />
                 </div>
               </th>
               
@@ -389,20 +312,7 @@ const ListView: React.FC = () => {
                 </div>
               </th>
               
-              <th 
-                className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200 transition-colors border-r border-gray-200"
-                onClick={() => handleSort('priority')}
-              >
-                <div className="flex items-center space-x-1">
-                  <ExclamationTriangleIcon className="w-4 h-4" />
-                  <span>Priority</span>
-                  <SortIcon field="priority" />
-                </div>
-              </th>
               
-              <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                Actions
-              </th>
             </tr>
           </thead>
           
@@ -411,21 +321,10 @@ const ListView: React.FC = () => {
               <tr 
                 key={match.id} 
                 className={`hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all duration-200 cursor-pointer group ${
-                  selectedMatches.has(match.id) 
-                    ? 'bg-gradient-to-r from-blue-100 to-purple-100 shadow-sm' 
-                    : index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
+                  index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
                 }`}
                 onClick={() => setSelectedMatch(match)}
               >
-                <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                  <input
-                    type="checkbox"
-                    checked={selectedMatches.has(match.id)}
-                    onChange={(e) => handleRowSelect(match.id, e.target.checked)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
-                  />
-                </td>
-                
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center space-x-2">
                     <ClockIcon className="w-4 h-4 text-blue-500" />
@@ -451,14 +350,29 @@ const ListView: React.FC = () => {
                 </td>
                 
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-xs">
-                      🏆
+                  <div>
+                    <div className="text-sm font-bold text-gray-900">{match.drawName}</div>
+                    <div className="text-xs text-gray-600 font-medium">{match.roundName}</div>
+                  </div>
+                </td>
+                
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div>
+                    <div className="text-sm font-bold text-gray-900">
+                      {state.draws.find(d => d.id === match.drawId)?.drawModel || 'N/A'}
                     </div>
-                    <div>
-                      <div className="text-sm font-bold text-gray-900">{match.drawName}</div>
-                      <div className="text-xs text-gray-600 font-medium">{match.roundName}</div>
-                    </div>
+                  </div>
+                </td>
+                
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center">
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                      match.gameType === 'Singles' 
+                        ? 'bg-blue-100 text-blue-700' 
+                        : 'bg-purple-100 text-purple-700'
+                    }`}>
+                      {match.gameType}
+                    </span>
                   </div>
                 </td>
                 
@@ -466,9 +380,6 @@ const ListView: React.FC = () => {
                   <div className="max-w-52">
                     <div className="text-sm font-bold text-gray-900">{formatPlayers(match)}</div>
                     <div className="flex items-center space-x-2 mt-1">
-                      {match.isDoubles && (
-                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">Doubles</span>
-                      )}
                       {match.estimatedDuration && (
                         <span className="text-xs text-gray-500">⏱️ {match.estimatedDuration}min</span>
                       )}
@@ -491,26 +402,7 @@ const ListView: React.FC = () => {
                   </div>
                 </td>
                 
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`${getPriorityBadge(match.priority)} flex items-center space-x-1`}>
-                    {match.priority === 'high' && <ExclamationTriangleIcon className="w-3 h-3" />}
-                    <span className="capitalize font-bold">{match.priority || 'normal'}</span>
-                  </span>
-                </td>
                 
-                <td className="px-6 py-4 whitespace-nowrap text-sm" onClick={(e) => e.stopPropagation()}>
-                  <select
-                    value={match.status}
-                    onChange={(e) => updateMatchStatus(match.id, e.target.value as MatchStatus)}
-                    className="text-xs border-2 border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium hover:border-gray-400 transition-colors"
-                  >
-                    <option value="scheduled">📅 Scheduled</option>
-                    <option value="in-progress">▶️ In Progress</option>
-                    <option value="completed">✅ Completed</option>
-                    <option value="postponed">⏸️ Postponed</option>
-                    <option value="walkover">🚫 Walkover</option>
-                  </select>
-                </td>
               </tr>
             ))}
           </tbody>
@@ -527,14 +419,6 @@ const ListView: React.FC = () => {
                 Showing <span className="font-bold text-blue-600">{filteredAndSortedMatches.length}</span> of <span className="font-bold">{state.matches.filter(m => m.scheduledDate === state.selectedDate).length}</span> matches
               </span>
             </div>
-            {selectedMatches.size > 0 && (
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                <span className="font-medium text-purple-700">
-                  <span className="font-bold">{selectedMatches.size}</span> selected
-                </span>
-              </div>
-            )}
           </div>
           
           <div className="flex items-center space-x-4 text-xs text-gray-500">

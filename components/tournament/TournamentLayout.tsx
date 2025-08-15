@@ -168,42 +168,6 @@ const TournamentLayout: React.FC = () => {
               <p className="text-gray-600 mt-1 font-medium">Professional tournament management system</p>
             </div>
             
-            {/* Date Selector */}
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <label htmlFor="date-select" className="text-sm font-medium text-gray-700">
-                  Date:
-                </label>
-                <select
-                  id="date-select"
-                  value={state.selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="border border-gray-300 rounded-md px-3 py-2 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  {availableDates.map(date => (
-                    <option key={date.value} value={date.value}>
-                      {date.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Enhanced Quick Stats */}
-              <div className="hidden md:flex items-center space-x-6 text-sm">
-                <div className="flex items-center space-x-2 bg-blue-50 px-3 py-2 rounded-lg">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
-                  <span className="text-gray-700 font-medium">{scheduledMatches.length} Scheduled</span>
-                </div>
-                <div className="flex items-center space-x-2 bg-green-50 px-3 py-2 rounded-lg">
-                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-gray-700 font-medium">{inProgressMatches.length} In Progress</span>
-                </div>
-                <div className="flex items-center space-x-2 bg-gray-50 px-3 py-2 rounded-lg">
-                  <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
-                  <span className="text-gray-700 font-medium">{completedMatches.length} Completed</span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -329,7 +293,10 @@ const TournamentLayout: React.FC = () => {
               <span className="font-medium text-gray-700">{new Date(state.selectedDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
             </div>
             <div className="text-gray-600">
-              <span className="font-semibold text-blue-600">{dayMatches.length}</span> matches
+              <span className="font-semibold text-blue-600">{scheduledMatches.length}</span> scheduled
+            </div>
+            <div className="text-gray-600">
+              <span className="font-semibold text-gray-600">{completedMatches.length}</span> completed
             </div>
             <div className="text-gray-600">
               <span className="font-semibold text-green-600">{state.courts.length}</span> courts
@@ -344,6 +311,22 @@ const TournamentLayout: React.FC = () => {
               <div className="flex items-center text-red-600 bg-red-50 px-3 py-1 rounded-full animate-pulse">
                 <ExclamationTriangleIcon className="w-4 h-4 mr-1" />
                 <span className="font-medium">{state.conflicts.length} conflict{state.conflicts.length !== 1 ? 's' : ''}</span>
+              </div>
+            )}
+            
+            {activeMainTab === 'schedule' && state.currentView === 'grid' && (
+              <div className="text-gray-500 bg-gray-50 px-3 py-1 rounded-full">
+                <span className="text-xs">
+                  {state.lastRefreshTime ? (
+                    `Last refresh: ${state.lastRefreshTime.toLocaleTimeString('en-US', { 
+                      hour12: false, 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}`
+                  ) : (
+                    'Not refreshed yet'
+                  )}
+                </span>
               </div>
             )}
             

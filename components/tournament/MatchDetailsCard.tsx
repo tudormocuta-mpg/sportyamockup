@@ -15,7 +15,7 @@ const MatchDetailsCard: React.FC<MatchDetailsCardProps> = ({ match }) => {
     courtId: match.courtId || '',
     score: match.score || '',
     notes: match.notes || '',
-    priority: match.priority || 'medium'
+    priority: 'medium' // Default priority since not in match type
   })
 
   // Handle form submission
@@ -27,8 +27,7 @@ const MatchDetailsCard: React.FC<MatchDetailsCardProps> = ({ match }) => {
       courtId: editForm.courtId,
       courtName: court?.name,
       score: editForm.score,
-      notes: editForm.notes,
-      priority: editForm.priority as 'high' | 'medium' | 'low'
+      notes: editForm.notes
     })
     
     setIsEditing(false)
@@ -41,7 +40,7 @@ const MatchDetailsCard: React.FC<MatchDetailsCardProps> = ({ match }) => {
       courtId: match.courtId || '',
       score: match.score || '',
       notes: match.notes || '',
-      priority: match.priority || 'medium'
+      priority: 'medium' // Default priority since not in match type
     })
     setIsEditing(false)
   }
@@ -96,7 +95,7 @@ const MatchDetailsCard: React.FC<MatchDetailsCardProps> = ({ match }) => {
           <div className="bg-white p-3 rounded-lg shadow-sm">
             <div className="text-lg font-bold text-gray-800 text-center">
               {formatPlayers()}
-              {match.isDoubles && (
+              {match.gameType === 'Doubles' && (
                 <span className="ml-2 text-sm text-purple-600 bg-purple-100 px-2 py-1 rounded-full">(Doubles)</span>
               )}
             </div>
@@ -154,8 +153,8 @@ const MatchDetailsCard: React.FC<MatchDetailsCardProps> = ({ match }) => {
                 <option value="low">Low</option>
               </select>
             ) : (
-              <div className={`px-3 py-2 rounded-lg text-sm font-bold border-2 ${getPriorityColor(match.priority)} flex items-center justify-center`}>
-                {(match.priority || 'medium').toUpperCase()}
+              <div className={`px-3 py-2 rounded-lg text-sm font-bold border-2 ${getPriorityColor('medium')} flex items-center justify-center`}>
+                MEDIUM
               </div>
             )}
           </div>
