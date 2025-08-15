@@ -12,7 +12,7 @@ interface ConfigSection {
 
 interface ConfigField {
   label: string
-  value: string | number | boolean
+  value: string | number | boolean | any
   type: 'text' | 'number' | 'boolean' | 'select' | 'date' | 'time' | 'complex'
   editable: boolean
   requiresReset: boolean
