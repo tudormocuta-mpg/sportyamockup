@@ -476,7 +476,7 @@ const TimelineView: React.FC = () => {
                   return (
                     <div
                       key={hour}
-                      className="absolute top-0 border-l border-gray-300 h-full flex items-start justify-start pl-2 pt-2"
+                      className="absolute top-0 border-l border-gray-300 h-full flex items-start justify-start pl-2 pt-2 z-10"
                       style={{ left: `${i * (60 / timelineConfig.interval) * timelineConfig.cellWidth}px` }}
                     >
                       <div className="bg-white px-2 py-1 rounded shadow-sm border">
