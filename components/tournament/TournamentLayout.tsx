@@ -8,6 +8,7 @@ import DrawView from './DrawView'
 import MatchDetailsCard from './MatchDetailsCard'
 import PlayerDetailsCard from './PlayerDetailsCard'
 import Configuration from './Configuration'
+import PrePlanning from './PrePlanning'
 import Blockers from './Blockers'
 import Courts from './Courts'
 import MatchStatusTracker from './MatchStatusTracker'
@@ -17,7 +18,7 @@ import Logs from './Logs'
 import ScheduleGenerationWizard from './ScheduleGenerationWizard'
 import { CalendarDaysIcon, ChartBarIcon, ExclamationTriangleIcon, ArrowDownTrayIcon, BellIcon, Cog6ToothIcon, MapPinIcon, ClipboardDocumentListIcon, GlobeAltIcon, LockClosedIcon, DocumentTextIcon } from '@heroicons/react/24/outline'
 
-type MainTab = 'schedule' | 'wizard' | 'configuration' | 'courts' | 'status' | 'blockers' | 'export' | 'notifications' | 'logs'
+type MainTab = 'schedule' | 'wizard' | 'configuration' | 'preplanning' | 'courts' | 'status' | 'blockers' | 'export' | 'notifications' | 'logs'
 
 const TournamentLayout: React.FC = () => {
   const { state, setCurrentView, setSelectedDate, setSelectedMatch, resetSchedule, toggleScheduleStatus } = useTournament()
@@ -69,8 +70,9 @@ const TournamentLayout: React.FC = () => {
   // Main navigation tabs with icons - Schedule Wizard first as primary entry point
   const mainTabs: { id: MainTab; name: string; icon: React.ComponentType<{ className?: string }>; color: string }[] = [
     { id: 'wizard', name: 'Schedule Wizard', icon: ChartBarIcon, color: 'purple' },
-    { id: 'schedule', name: 'Schedule', icon: CalendarDaysIcon, color: 'blue' },
     { id: 'configuration', name: 'Configuration', icon: Cog6ToothIcon, color: 'gray' },
+    { id: 'preplanning', name: 'Pre-Planning', icon: GlobeAltIcon, color: 'green' },
+    { id: 'schedule', name: 'Schedule', icon: CalendarDaysIcon, color: 'blue' },
     { id: 'courts', name: 'Courts', icon: MapPinIcon, color: 'green' },
     { id: 'status', name: 'Match Status', icon: ClipboardDocumentListIcon, color: 'orange' },
     { id: 'blockers', name: 'Blockers', icon: ExclamationTriangleIcon, color: 'red' },
@@ -118,6 +120,9 @@ const TournamentLayout: React.FC = () => {
     }
     if (activeMainTab === 'configuration') {
       return <Configuration />
+    }
+    if (activeMainTab === 'preplanning') {
+      return <PrePlanning />
     }
     if (activeMainTab === 'courts') {
       return <Courts />

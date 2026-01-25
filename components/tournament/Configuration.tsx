@@ -1,359 +1,777 @@
 import React, { useState } from 'react'
-import { useTournament } from '../../contexts/TournamentContext'
-import ScheduleGenerationWizard from './ScheduleGenerationWizard'
-import { ExclamationTriangleIcon, LockClosedIcon, PencilIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
+import { 
+  ClockIcon, 
+  CalendarDaysIcon, 
+  CogIcon,
+  InformationCircleIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  Squares2X2Icon,
+  ListBulletIcon,
+  AdjustmentsHorizontalIcon
+} from '@heroicons/react/24/outline'
 
-interface ConfigSection {
-  title: string
+interface MandatoryRule {
+  id: string
+  name: string
+  defaultValue: number
+  unit: string
+  editable: boolean
   description: string
-  requiresReset: boolean
-  fields: ConfigField[]
+  value: number
 }
 
-interface ConfigField {
-  label: string
-  value: string | number | boolean | any
-  type: 'text' | 'number' | 'boolean' | 'select' | 'date' | 'time' | 'complex'
-  editable: boolean
-  requiresReset: boolean
-  impact: string
-  currentValue?: any
+interface PriorityRule {
+  id: string
+  name: string
+  description: string
+  effect: string
+  enabled: boolean
+  order: number
+}
+
+interface CourtAvailability {
+  courtId: string
+  courtName: string
+  surface: string
+  days: {
+    date: string
+    dayName: string
+    timeSlots: {
+      start: string
+      end: string
+    }[]
+  }[]
+}
+
+interface PriorityStage {
+  id: string
+  title: string
+  description: string
+  rules: PriorityRule[]
 }
 
 const Configuration: React.FC = () => {
-  const { state } = useTournament()
-  const [activeTab, setActiveTab] = useState<'settings' | 'wizard'>('settings')
-  const [editingField, setEditingField] = useState<string | null>(null)
-  
-  // Mock wizard data - in real app would come from context/storage
-  const wizardData = {
-    tournamentStart: '2024-08-15',
-    tournamentEnd: '2024-08-17',
-    matchDuration: 90,
-    bufferTime: 15,
-    minRestPeriod: 120,
-    maxMatchesPerPlayerPerDay: 2,
-    finalsCourt: 'c1',
-    indoorCourtPriority: false,
-    courtsByDay: {
-      '2024-08-15': [
-        { courtId: 'c3', name: 'Court 3', timeSlots: [{ startTime: '14:00', endTime: '20:00' }] },
-        { courtId: 'c6', name: 'Practice Court', timeSlots: [{ startTime: '08:00', endTime: '12:00' }, { startTime: '16:00', endTime: '20:00' }] }
-      ],
-      '2024-08-16': [
-        { courtId: 'c3', name: 'Court 3', timeSlots: [{ startTime: '08:00', endTime: '20:00' }] },
-        { courtId: 'c6', name: 'Practice Court', timeSlots: [{ startTime: '08:00', endTime: '20:00' }] }
-      ],
-      '2024-08-17': [
-        { courtId: 'c3', name: 'Court 3', timeSlots: [{ startTime: '08:00', endTime: '20:00' }] },
-        { courtId: 'c6', name: 'Practice Court', timeSlots: [{ startTime: '08:00', endTime: '20:00' }] }
-      ]
-    },
-    schedulingRules: [
-      { id: 'court-availability', name: 'Court Availability', priority: 1, enabled: true },
-      { id: 'player-rest', name: 'Player Rest Time', priority: 2, enabled: true },
-      { id: 'player-availability', name: 'Player Availability', priority: 3, enabled: true },
-      { id: 'indoor-priority', name: 'Indoor Court Priority', priority: 4, enabled: false },
-      { id: 'finals-court', name: 'Finals Court Preference', priority: 5, enabled: true }
-    ]
-  }
+  const [configMode, setConfigMode] = useState<'template' | 'advanced'>('template')
+  const [activeSection, setActiveSection] = useState<string>('mandatory')
+  const [expandedStages, setExpandedStages] = useState<string[]>(['stage1', 'stage2', 'stage3'])
+  const [draggedRule, setDraggedRule] = useState<string | null>(null)
+  const [draggedStage, setDraggedStage] = useState<string | null>(null)
 
-  // Check if schedule has been generated
-  const hasGeneratedSchedule = state.matches.some(match => match.scheduledTime && match.scheduledDate)
-
-  // Configuration sections with their fields
-  const configSections: ConfigSection[] = [
+  // Reguli Obligatorii (4.1 din spec)
+  const [mandatoryRules, setMandatoryRules] = useState<MandatoryRule[]>([
     {
-      title: 'Tournament Timeline',
-      description: 'Core tournament dates and duration',
-      requiresReset: true,
-      fields: [
-        {
-          label: 'Tournament Start Date',
-          value: wizardData.tournamentStart,
-          type: 'date',
-          editable: false,
-          requiresReset: true,
-          impact: 'Changing dates requires complete schedule regeneration as it affects all match slots and court availability'
-        },
-        {
-          label: 'Tournament End Date',
-          value: wizardData.tournamentEnd,
-          type: 'date',
-          editable: false,
-          requiresReset: true,
-          impact: 'Extending or shortening the tournament requires recalculating all match distributions'
-        },
-        {
-          label: 'Total Duration',
-          value: `${Math.ceil((new Date(wizardData.tournamentEnd).getTime() - new Date(wizardData.tournamentStart).getTime()) / (1000 * 60 * 60 * 24)) + 1} days`,
-          type: 'text',
-          editable: false,
-          requiresReset: false,
-          impact: 'Calculated from start and end dates'
-        }
-      ]
+      id: 'singles-duration',
+      name: 'Durata meci simplu',
+      defaultValue: 60,
+      unit: 'min',
+      editable: true,
+      description: 'Timpul alocat pentru un meci de simplu',
+      value: 60
     },
     {
-      title: 'Match Scheduling Parameters',
-      description: 'Time allocations for matches and breaks',
-      requiresReset: false,
-      fields: [
-        {
-          label: 'Default Match Duration',
-          value: `${wizardData.matchDuration} minutes`,
-          type: 'number',
-          editable: false,
-          requiresReset: true,
-          impact: 'Affects court slot allocation - changing requires recalculating all time slots'
-        },
-        {
-          label: 'Buffer Time Between Matches',
-          value: `${wizardData.bufferTime} minutes`,
-          type: 'number',
-          editable: false,
-          requiresReset: true,
-          impact: 'Affects spacing between matches - modification requires complete rescheduling'
-        },
-        {
-          label: 'Minimum Rest Period for Players',
-          value: `${wizardData.minRestPeriod} minutes`,
-          type: 'number',
-          editable: true,
-          requiresReset: false,
-          impact: 'Can be adjusted if new value doesn\'t conflict with existing schedule'
-        },
-        {
-          label: 'Max Matches Per Player Per Day',
-          value: wizardData.maxMatchesPerPlayerPerDay,
-          type: 'number',
-          editable: true,
-          requiresReset: false,
-          impact: 'Can be reduced if no player exceeds new limit in current schedule'
-        }
-      ]
+      id: 'doubles-duration',
+      name: 'Durata meci dublu',
+      defaultValue: 45,
+      unit: 'min',
+      editable: true,
+      description: 'Timpul alocat pentru un meci de dublu',
+      value: 45
     },
     {
-      title: 'Court Allocation by Day',
-      description: 'Daily court availability and time slots',
-      requiresReset: true,
-      fields: Object.entries(wizardData.courtsByDay).map(([date, courts]) => ({
-        label: new Date(date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }),
-        value: courts,
-        type: 'complex' as const,
-        editable: false,
-        requiresReset: true,
-        impact: 'Court availability directly affects match scheduling - any change requires regeneration'
-      }))
+      id: 'min-rest',
+      name: 'Pauza minima intre meciuri',
+      defaultValue: 90,
+      unit: 'min',
+      editable: true,
+      description: 'Pauza minima pentru acelasi jucator intre doua meciuri',
+      value: 90
     },
     {
-      title: 'Court Preferences',
-      description: 'Special court assignments and priorities',
-      requiresReset: false,
-      fields: [
-        {
-          label: 'Preferred Finals Court',
-          value: state.courts.find(c => c.id === wizardData.finalsCourt)?.name || 'Court 1',
-          type: 'select',
-          editable: true,
-          requiresReset: false,
-          impact: 'Can be changed - only affects future finals match assignments'
-        },
-        {
-          label: 'Indoor Court Priority',
-          value: wizardData.indoorCourtPriority,
-          type: 'boolean',
-          editable: true,
-          requiresReset: false,
-          impact: 'Preference for future scheduling decisions - doesn\'t affect existing matches'
-        }
-      ]
+      id: 'max-matches-day',
+      name: 'Maximum meciuri/zi per jucator',
+      defaultValue: 3,
+      unit: 'meciuri',
+      editable: true,
+      description: 'Numarul maxim de meciuri pe care un jucator le poate juca intr-o zi',
+      value: 3
     },
     {
-      title: 'Scheduling Rules Priority',
-      description: 'Rules applied during schedule generation',
-      requiresReset: false,
-      fields: wizardData.schedulingRules.map(rule => ({
-        label: rule.name,
-        value: rule.enabled,
-        type: 'boolean' as const,
-        editable: true,
-        requiresReset: false,
-        impact: `Priority ${rule.priority} - ${rule.enabled ? 'Active' : 'Inactive'} - Affects future scheduling decisions`,
-        currentValue: rule
-      }))
+      id: 'max-rounds-day',
+      name: 'Max. tururi (eliminatoriu) pe zi per tablou',
+      defaultValue: 2,
+      unit: 'tururi',
+      editable: false,
+      description: 'Numarul maxim de tururi dintr-un tablou eliminatoriu ce pot fi jucate intr-o zi',
+      value: 2
+    },
+    {
+      id: 'max-series-day',
+      name: 'Max. serii (grupe) pe zi per tablou',
+      defaultValue: 999,
+      unit: 'serii',
+      editable: false,
+      description: 'Numarul maxim de serii din grupe ce pot fi jucate intr-o zi (practic infinit)',
+      value: 999
     }
-  ]
+  ])
 
-  const handleResetSchedule = () => {
-    if (window.confirm('This will clear all scheduled matches and restart the scheduling wizard. Continue?')) {
-      setActiveTab('wizard')
+  // Disponibilitate Terenuri (4.2 din spec)
+  const [courtAvailability, setCourtAvailability] = useState<CourtAvailability[]>([
+    {
+      courtId: 'court1',
+      courtName: 'Teren Central',
+      surface: 'Zgura',
+      days: [
+        {
+          date: '2025-02-15',
+          dayName: 'Sambata',
+          timeSlots: [
+            { start: '08:00', end: '12:00' },
+            { start: '14:00', end: '20:00' }
+          ]
+        },
+        {
+          date: '2025-02-16',
+          dayName: 'Duminica',
+          timeSlots: [
+            { start: '08:00', end: '20:00' }
+          ]
+        }
+      ]
+    },
+    {
+      courtId: 'court2',
+      courtName: 'Teren 2',
+      surface: 'Zgura',
+      days: [
+        {
+          date: '2025-02-15',
+          dayName: 'Sambata',
+          timeSlots: [
+            { start: '08:00', end: '20:00' }
+          ]
+        },
+        {
+          date: '2025-02-16',
+          dayName: 'Duminica',
+          timeSlots: [
+            { start: '08:00', end: '18:00' }
+          ]
+        }
+      ]
     }
+  ])
+
+  // Sistem de Priorități (4.3 din spec / Sectiunea 7.2)
+  const [priorityStages, setPriorityStages] = useState<PriorityStage[]>([
+    {
+      id: 'stage1',
+      title: 'ETAPA 1: SORTARE TABLOURI',
+      description: 'Determina ordinea in care tablourile sunt procesate',
+      rules: [
+        {
+          id: 'rule1.1',
+          name: 'Numar meciuri',
+          description: 'Tablourile cu mai multe meciuri au prioritate',
+          effect: 'Tabloul mare ocupa sloturile primul',
+          enabled: true,
+          order: 1
+        },
+        {
+          id: 'rule1.2',
+          name: 'Sistem',
+          description: 'Grupe > Eliminatoriu',
+          effect: 'Grupele (cu serii interdependente) au prioritate',
+          enabled: true,
+          order: 2
+        },
+        {
+          id: 'rule1.3',
+          name: 'Nivel',
+          description: 'Nivelul mai mare are prioritate. Ex: N6 > N5 > N4',
+          effect: 'Tablourile avansate se programeaza primele',
+          enabled: true,
+          order: 3
+        },
+        {
+          id: 'rule1.4',
+          name: 'Tip',
+          description: 'Simplu > Dublu',
+          effect: 'Meciurile de simplu au prioritate',
+          enabled: true,
+          order: 4
+        }
+      ]
+    },
+    {
+      id: 'stage2',
+      title: 'ETAPA 2: PRIORITIZARE MECIURI',
+      description: 'Determina ordinea in care meciurile dintr-un tur/serie sunt alocate pe sloturi',
+      rules: [
+        {
+          id: 'rule2.1',
+          name: 'Multi-probe',
+          description: 'Jucatorii inscrisi in mai multe probe au prioritate',
+          effect: 'Evita blocaje ulterioare',
+          enabled: true,
+          order: 1
+        },
+        {
+          id: 'rule2.2',
+          name: 'Jucatori din afara',
+          description: 'Jucatorii cu resedinta in afara orasului turneului evita prima zi dimineata',
+          effect: 'Timp pentru deplasare',
+          enabled: true,
+          order: 2
+        }
+      ]
+    },
+    {
+      id: 'stage3',
+      title: 'ETAPA 3: OPTIMIZARE ALOCARE',
+      description: 'Ajusteaza plasarea meciurilor pentru eficienta',
+      rules: [
+        {
+          id: 'rule3.1',
+          name: 'Compactare temporala',
+          description: 'Minimizeaza golurile intre meciuri pe acelasi teren',
+          effect: 'Program compact',
+          enabled: true,
+          order: 1
+        },
+        {
+          id: 'rule3.2',
+          name: 'Minimizare fragmentare',
+          description: 'Evita impartirea unui bloc pe prea multe terenuri',
+          effect: 'Coerenta vizuala',
+          enabled: true,
+          order: 2
+        },
+        {
+          id: 'rule3.3',
+          name: 'Grupare jucator',
+          description: 'Meciurile aceluiasi jucator sunt programate cat mai aproape (respectand pauza minima)',
+          effect: 'Confort pentru jucator',
+          enabled: true,
+          order: 3
+        }
+      ]
+    }
+  ])
+
+  const toggleStageExpanded = (stageId: string) => {
+    setExpandedStages(prev => 
+      prev.includes(stageId) 
+        ? prev.filter(id => id !== stageId)
+        : [...prev, stageId]
+    )
   }
 
-  const handleEditField = (fieldLabel: string) => {
-    setEditingField(fieldLabel)
-    // Implementation for field editing would go here
+  const handleDragStart = (e: React.DragEvent, ruleId: string, stageId: string) => {
+    if (configMode !== 'advanced') return
+    setDraggedRule(ruleId)
+    setDraggedStage(stageId)
+    e.dataTransfer.effectAllowed = 'move'
   }
 
-  if (activeTab === 'wizard') {
-    return <ScheduleGenerationWizard />
+  const handleDragOver = (e: React.DragEvent) => {
+    if (configMode !== 'advanced') return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  const handleDrop = (e: React.DragEvent, targetRuleId: string, targetStageId: string) => {
+    e.preventDefault()
+    if (configMode !== 'advanced' || !draggedRule || !draggedStage) return
+    
+    // Only allow reordering within the same stage
+    if (draggedStage !== targetStageId) return
+
+    setPriorityStages(prev => {
+      const newStages = [...prev]
+      const stageIndex = newStages.findIndex(s => s.id === targetStageId)
+      const stage = newStages[stageIndex]
+      
+      const draggedIndex = stage.rules.findIndex(r => r.id === draggedRule)
+      const targetIndex = stage.rules.findIndex(r => r.id === targetRuleId)
+      
+      if (draggedIndex !== -1 && targetIndex !== -1) {
+        const newRules = [...stage.rules]
+        const [removed] = newRules.splice(draggedIndex, 1)
+        newRules.splice(targetIndex, 0, removed)
+        
+        // Update order numbers
+        newRules.forEach((rule, index) => {
+          rule.order = index + 1
+        })
+        
+        newStages[stageIndex] = { ...stage, rules: newRules }
+      }
+      
+      return newStages
+    })
+
+    setDraggedRule(null)
+    setDraggedStage(null)
+  }
+
+  const toggleRule = (stageId: string, ruleId: string) => {
+    setPriorityStages(prev => prev.map(stage => {
+      if (stage.id === stageId) {
+        return {
+          ...stage,
+          rules: stage.rules.map(rule => 
+            rule.id === ruleId ? { ...rule, enabled: !rule.enabled } : rule
+          )
+        }
+      }
+      return stage
+    }))
+  }
+
+  const updateMandatoryRule = (ruleId: string, newValue: number) => {
+    setMandatoryRules(prev => prev.map(rule => 
+      rule.id === ruleId ? { ...rule, value: newValue } : rule
+    ))
+  }
+
+  const addCourtTimeSlot = (courtId: string, date: string) => {
+    setCourtAvailability(prev => prev.map(court => {
+      if (court.courtId === courtId) {
+        return {
+          ...court,
+          days: court.days.map(day => {
+            if (day.date === date) {
+              return {
+                ...day,
+                timeSlots: [...day.timeSlots, { start: '12:00', end: '14:00' }]
+              }
+            }
+            return day
+          })
+        }
+      }
+      return court
+    }))
   }
 
   return (
-    <div className="configuration-container h-full overflow-auto bg-gray-50">
-      <div className="max-w-4xl mx-auto p-6">
+    <div className="h-full overflow-auto bg-gray-50">
+      <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex justify-between items-start">
+          <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Tournament Configuration</h2>
-              <p className="text-sm text-gray-600 mt-1">Review and manage tournament scheduling parameters</p>
+              <h1 className="text-2xl font-bold text-gray-900">Configurator Turneu</h1>
+              <p className="text-sm text-gray-600 mt-1">
+                Modul 1: Configurare reguli si prioritati pentru programarea automata
+              </p>
             </div>
-            {hasGeneratedSchedule && (
-              <div className="flex items-center space-x-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-sm font-medium text-green-800">Schedule Active</span>
+            
+            {/* Template vs Advanced Toggle */}
+            <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setConfigMode('template')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  configMode === 'template' 
+                    ? 'bg-white text-blue-600 shadow-sm' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Squares2X2Icon className="w-4 h-4 inline mr-2" />
+                Template
+              </button>
+              <button
+                onClick={() => setConfigMode('advanced')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  configMode === 'advanced' 
+                    ? 'bg-white text-blue-600 shadow-sm' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <AdjustmentsHorizontalIcon className="w-4 h-4 inline mr-2" />
+                Avansat
+              </button>
+            </div>
+          </div>
+
+          {configMode === 'advanced' && (
+            <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="flex items-start">
+                <InformationCircleIcon className="w-5 h-5 text-blue-600 mr-2 mt-0.5" />
+                <div>
+                  <p className="text-sm text-blue-800 font-medium">Mod Avansat Activ</p>
+                  <p className="text-xs text-blue-600 mt-1">
+                    Puteti reordona regulile prin drag & drop si activa/dezactiva reguli individuale
+                  </p>
+                </div>
               </div>
-            )}
+            </div>
+          )}
+        </div>
+
+        {/* Navigation Tabs */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+          <div className="flex border-b border-gray-200">
+            <button
+              onClick={() => setActiveSection('mandatory')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeSection === 'mandatory'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <CogIcon className="w-4 h-4 inline mr-2" />
+              Reguli Obligatorii
+            </button>
+            <button
+              onClick={() => setActiveSection('courts')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeSection === 'courts'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <CalendarDaysIcon className="w-4 h-4 inline mr-2" />
+              Disponibilitate Terenuri
+            </button>
+            <button
+              onClick={() => setActiveSection('priorities')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeSection === 'priorities'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <ListBulletIcon className="w-4 h-4 inline mr-2" />
+              Sistem de Prioritati
+            </button>
           </div>
         </div>
 
-        {/* Warning Banner */}
-        {hasGeneratedSchedule && (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
-            <div className="flex items-start">
-              <ExclamationTriangleIcon className="w-5 h-5 text-amber-600 mr-3 mt-0.5" />
-              <div>
-                <h3 className="text-sm font-semibold text-amber-900 mb-1">Active Schedule Warning</h3>
-                <p className="text-sm text-amber-700">
-                  A tournament schedule is currently active. Some configuration changes require resetting the entire schedule.
-                  Fields marked with a lock icon cannot be modified without regenerating all match assignments.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Configuration Sections */}
+        {/* Content Sections */}
         <div className="space-y-6">
-          {configSections.map((section, sectionIndex) => (
-            <div key={sectionIndex} className="bg-white rounded-lg shadow-sm border border-gray-200">
-              {/* Section Header */}
-              <div className={`px-6 py-4 border-b ${section.requiresReset ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-200'}`}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-900">{section.title}</h3>
-                    <p className="text-xs text-gray-600 mt-1">{section.description}</p>
-                  </div>
-                  {section.requiresReset && hasGeneratedSchedule && (
-                    <div className="flex items-center text-red-600">
-                      <LockClosedIcon className="w-4 h-4 mr-1" />
-                      <span className="text-xs font-medium">Requires Reset</span>
-                    </div>
-                  )}
-                </div>
-              </div>
+          {/* Section 4.1: Reguli Obligatorii */}
+          {activeSection === 'mandatory' && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div className="p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-1">Reguli Obligatorii (Fixe)</h2>
+                <p className="text-sm text-gray-600 mb-6">
+                  Parametri fundamentali pentru programarea meciurilor. Valorile implicite pot fi modificate.
+                </p>
 
-              {/* Section Fields */}
-              <div className="divide-y divide-gray-100">
-                {section.fields.map((field, fieldIndex) => (
-                  <div key={fieldIndex} className="px-6 py-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center mb-1">
-                          <label className="text-sm font-medium text-gray-900">
-                            {field.label}
-                          </label>
-                          {field.requiresReset && hasGeneratedSchedule && (
-                            <LockClosedIcon className="w-3 h-3 text-gray-400 ml-2" />
-                          )}
-                          {field.editable && !field.requiresReset && hasGeneratedSchedule && (
-                            <button
-                              onClick={() => handleEditField(field.label)}
-                              className="ml-2 text-blue-600 hover:text-blue-800"
-                            >
-                              <PencilIcon className="w-3 h-3" />
-                            </button>
-                          )}
+                <div className="space-y-4">
+                  {mandatoryRules.map((rule) => (
+                    <div key={rule.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center">
+                            <h3 className="text-sm font-semibold text-gray-900">{rule.name}</h3>
+                            {!rule.editable && (
+                              <span className="ml-2 px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
+                                Fix
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-600 mt-1">{rule.description}</p>
                         </div>
                         
-                        {/* Field Value Display */}
-                        <div className="mb-2">
-                          {field.type === 'complex' ? (
-                            // Special rendering for court allocation
-                            <div className="mt-2 space-y-2">
-                              {(field.value as any[]).map((court: any, index: number) => (
-                                <div key={index} className="bg-gray-50 rounded-lg p-3 text-xs">
-                                  <div className="font-medium text-gray-900">{court.name}</div>
-                                  <div className="mt-1 text-gray-600">
-                                    Time Slots: {court.timeSlots.map((slot: any) => 
-                                      `${slot.startTime}-${slot.endTime}`
-                                    ).join(', ')}
-                                  </div>
+                        <div className="ml-4">
+                          {rule.editable ? (
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="number"
+                                value={rule.value}
+                                onChange={(e) => updateMandatoryRule(rule.id, parseInt(e.target.value) || 0)}
+                                className="w-20 px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              />
+                              <span className="text-sm text-gray-600">{rule.unit}</span>
+                            </div>
+                          ) : (
+                            <div className="text-sm font-medium text-gray-900">
+                              {rule.value === 999 ? 'Infinit' : rule.value} {rule.unit}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="mt-3 flex items-center text-xs text-gray-500">
+                        <InformationCircleIcon className="w-3 h-3 mr-1" />
+                        <span>Valoare implicita: {rule.defaultValue} {rule.unit}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Section 4.2: Disponibilitate Terenuri */}
+          {activeSection === 'courts' && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div className="p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-1">Disponibilitate Terenuri</h2>
+                <p className="text-sm text-gray-600 mb-6">
+                  Definiti zilele si intervalele orare disponibile pentru fiecare teren
+                </p>
+
+                <div className="space-y-6">
+                  {courtAvailability.map((court) => (
+                    <div key={court.courtId} className="border border-gray-200 rounded-lg">
+                      <div className="p-4 bg-gray-50 border-b border-gray-200">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-sm font-semibold text-gray-900">{court.courtName}</h3>
+                            <p className="text-xs text-gray-600 mt-1">Suprafata: {court.surface}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-4 space-y-4">
+                        {court.days.map((day) => (
+                          <div key={day.date} className="border-l-4 border-blue-500 pl-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <div>
+                                <div className="text-sm font-medium text-gray-900">{day.dayName}</div>
+                                <div className="text-xs text-gray-600">{day.date}</div>
+                              </div>
+                              <button
+                                onClick={() => addCourtTimeSlot(court.courtId, day.date)}
+                                className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                              >
+                                + Adauga interval
+                              </button>
+                            </div>
+                            
+                            <div className="flex flex-wrap gap-2">
+                              {day.timeSlots.map((slot, index) => (
+                                <div 
+                                  key={index}
+                                  className="inline-flex items-center px-3 py-1 bg-blue-50 border border-blue-200 rounded-md"
+                                >
+                                  <ClockIcon className="w-3 h-3 text-blue-600 mr-1" />
+                                  <span className="text-xs font-medium text-blue-900">
+                                    {slot.start} - {slot.end}
+                                  </span>
                                 </div>
                               ))}
                             </div>
-                          ) : field.type === 'boolean' ? (
-                            <div className="flex items-center">
-                              <div className={`w-8 h-5 rounded-full ${field.value ? 'bg-blue-600' : 'bg-gray-300'} relative transition-colors`}>
-                                <div className={`w-3 h-3 bg-white rounded-full absolute top-1 transition-transform ${field.value ? 'translate-x-4' : 'translate-x-1'}`}></div>
-                              </div>
-                              <span className="ml-2 text-sm text-gray-700">{field.value ? 'Enabled' : 'Disabled'}</span>
-                            </div>
-                          ) : (
-                            <div className="text-sm text-gray-700 font-medium">
-                              {field.value.toString()}
-                            </div>
-                          )}
-                        </div>
-                        
-                        {/* Impact Description */}
-                        <div className="text-xs text-gray-500 italic">
-                          <span className="font-medium">Impact:</span> {field.impact}
-                        </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                  <div className="flex items-start">
+                    <InformationCircleIcon className="w-5 h-5 text-amber-600 mr-2 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-amber-900 font-medium">Nota</p>
+                      <p className="text-xs text-amber-700 mt-1">
+                        Suprafata terenului este preluata automat din configurarea evenimentului.
+                        Intervalele orare definite aici vor fi utilizate de algoritmul de programare.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Section 4.3: Sistem de Prioritati */}
+          {activeSection === 'priorities' && (
+            <div className="space-y-6">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-1">Sistem de Prioritati</h2>
+                <p className="text-sm text-gray-600 mb-4">
+                  Personalizati comportamentul algoritmului prin reordonarea si activarea/dezactivarea regulilor
+                </p>
+                
+                {configMode === 'template' && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                    <div className="flex items-start">
+                      <InformationCircleIcon className="w-5 h-5 text-blue-600 mr-2 mt-0.5" />
+                      <div>
+                        <p className="text-sm text-blue-800 font-medium">Mod Template</p>
+                        <p className="text-xs text-blue-600 mt-1">
+                          Utilizati configuratia predefinita. Pentru a personaliza ordinea si starea regulilor, activati modul Avansat.
+                        </p>
                       </div>
                     </div>
                   </div>
-                ))}
+                )}
+              </div>
+
+              {/* Priority Stages */}
+              {priorityStages.map((stage) => (
+                <div key={stage.id} className="bg-white rounded-lg shadow-sm border border-gray-200">
+                  <button
+                    onClick={() => toggleStageExpanded(stage.id)}
+                    className="w-full px-6 py-4 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors border-b border-gray-200"
+                  >
+                    <div className="flex items-center">
+                      <div className="flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 rounded-lg mr-3 font-bold text-sm">
+                        {stage.id === 'stage1' ? '1' : stage.id === 'stage2' ? '2' : '3'}
+                      </div>
+                      <div className="text-left">
+                        <h3 className="text-sm font-semibold text-gray-900">{stage.title}</h3>
+                        <p className="text-xs text-gray-600 mt-1">{stage.description}</p>
+                      </div>
+                    </div>
+                    {expandedStages.includes(stage.id) ? (
+                      <ChevronUpIcon className="w-5 h-5 text-gray-400" />
+                    ) : (
+                      <ChevronDownIcon className="w-5 h-5 text-gray-400" />
+                    )}
+                  </button>
+
+                  {expandedStages.includes(stage.id) && (
+                    <div className="p-6">
+                      <div className="space-y-3">
+                        {stage.rules.map((rule) => (
+                          <div
+                            key={rule.id}
+                            draggable={configMode === 'advanced'}
+                            onDragStart={(e) => handleDragStart(e, rule.id, stage.id)}
+                            onDragOver={handleDragOver}
+                            onDrop={(e) => handleDrop(e, rule.id, stage.id)}
+                            className={`
+                              border rounded-lg p-4 transition-all
+                              ${rule.enabled ? 'border-gray-200 bg-white' : 'border-gray-100 bg-gray-50'}
+                              ${configMode === 'advanced' ? 'cursor-move hover:shadow-md' : ''}
+                              ${draggedRule === rule.id ? 'opacity-50' : ''}
+                            `}
+                          >
+                            <div className="flex items-start">
+                              {/* Drag Handle & Order */}
+                              {configMode === 'advanced' && (
+                                <div className="mr-3">
+                                  <div className="flex flex-col items-center">
+                                    <div className="text-gray-400 mb-1">
+                                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M7 2a2 2 0 11-4 0 2 2 0 014 0zM7 6a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0zM15 2a2 2 0 11-4 0 2 2 0 014 0zM15 6a2 2 0 11-4 0 2 2 0 014 0zM15 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                      </svg>
+                                    </div>
+                                    <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center text-xs font-medium text-gray-600">
+                                      {rule.order}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Rule Content */}
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between mb-2">
+                                  <h4 className={`text-sm font-semibold ${rule.enabled ? 'text-gray-900' : 'text-gray-500'}`}>
+                                    {rule.name}
+                                  </h4>
+                                  
+                                  {/* Toggle Switch */}
+                                  {configMode === 'advanced' && (
+                                    <button
+                                      onClick={() => toggleRule(stage.id, rule.id)}
+                                      className={`
+                                        relative inline-flex h-6 w-11 items-center rounded-full transition-colors
+                                        ${rule.enabled ? 'bg-blue-600' : 'bg-gray-300'}
+                                      `}
+                                    >
+                                      <span className="sr-only">Toggle rule</span>
+                                      <span
+                                        className={`
+                                          inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+                                          ${rule.enabled ? 'translate-x-6' : 'translate-x-1'}
+                                        `}
+                                      />
+                                    </button>
+                                  )}
+                                  {configMode === 'template' && (
+                                    <span className={`
+                                      px-2 py-1 text-xs font-medium rounded
+                                      ${rule.enabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}
+                                    `}>
+                                      {rule.enabled ? 'Activ' : 'Inactiv'}
+                                    </span>
+                                  )}
+                                </div>
+                                
+                                <p className={`text-xs mb-2 ${rule.enabled ? 'text-gray-600' : 'text-gray-400'}`}>
+                                  {rule.description}
+                                </p>
+                                
+                                <div className={`flex items-center text-xs ${rule.enabled ? 'text-gray-500' : 'text-gray-400'}`}>
+                                  <span className="font-medium mr-1">Efect:</span>
+                                  <span>{rule.effect}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {configMode === 'advanced' && (
+                        <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                          <p className="text-xs text-gray-600">
+                            <strong>Tip:</strong> Drag & drop pentru a reordona regulile in cadrul acestei etape.
+                            Regulile sunt aplicate secvential, de sus in jos.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {/* Algorithm Flow Info */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Flux Algoritm</h3>
+                <div className="space-y-2">
+                  <div className="flex items-start">
+                    <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold mr-3 mt-0.5">1</div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Sortare Tablouri</p>
+                      <p className="text-xs text-gray-600">Aplica regulile din Etapa 1 pentru a ordona tablourile</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start">
+                    <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold mr-3 mt-0.5">2</div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Procesare Tururi</p>
+                      <p className="text-xs text-gray-600">Pentru fiecare tur, aplica regulile din Etapa 2 si aloca meciurile</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start">
+                    <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold mr-3 mt-0.5">3</div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Optimizare</p>
+                      <p className="text-xs text-gray-600">Aplica regulile din Etapa 3 pentru eficienta maxima</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-          ))}
+          )}
         </div>
 
         {/* Action Buttons */}
         <div className="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-1">Configuration Actions</h3>
-              <p className="text-xs text-gray-600">Manage your tournament schedule configuration</p>
+              <h3 className="text-sm font-semibold text-gray-900">Configurare Completa</h3>
+              <p className="text-xs text-gray-600 mt-1">
+                Salvati configuratia si continuati la modulul Pre-Planning
+              </p>
             </div>
             <div className="flex space-x-3">
-              {hasGeneratedSchedule && (
-                <button
-                  onClick={handleResetSchedule}
-                  className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center"
-                >
-                  <ArrowPathIcon className="w-4 h-4 mr-2" />
-                  Reset & Regenerate Schedule
-                </button>
-              )}
-              {!hasGeneratedSchedule && (
-                <button
-                  onClick={() => setActiveTab('wizard')}
-                  className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                >
-                  Open Schedule Wizard
-                </button>
-              )}
+              <button className="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300 transition-colors font-medium">
+                Reseteaza la Default
+              </button>
+              <button className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                Salveaza & Continua →
+              </button>
             </div>
           </div>
-        </div>
-
-        {/* Information Footer */}
-        <div className="mt-6 text-center text-xs text-gray-500">
-          <p>Configuration was set during initial schedule generation.</p>
-          <p>Some parameters can be adjusted without regenerating the schedule.</p>
         </div>
       </div>
     </div>
