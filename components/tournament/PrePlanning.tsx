@@ -1,8 +1,6 @@
-import React, { useState, useRef } from 'react'
-import { 
-  CalendarDaysIcon,
+import React, { useState, useMemo, useCallback } from 'react'
+import {
   ExclamationTriangleIcon,
-  CheckCircleIcon,
   InformationCircleIcon,
   ArrowsPointingOutIcon,
   ArrowsPointingInIcon,
@@ -18,9 +16,9 @@ interface Block {
   round: number
   roundName: string
   matchCount: number
+  gameType: 'singles' | 'doubles'
   startTime: string
   endTime: string
-  courtId: string
   date: string
   isFragment?: boolean
   parentBlockId?: string
@@ -28,10 +26,15 @@ interface Block {
   totalFragments?: number
 }
 
-interface Court {
-  id: string
-  name: string
+interface CourtAvailability {
+  courtId: string
+  courtName: string
   surface: string
+  days: {
+    date: string
+    dayName: string
+    timeSlots: { start: string; end: string }[]
+  }[]
 }
 
 interface Day {
@@ -58,25 +61,93 @@ interface ValidationMessage {
   details?: string
 }
 
+// Parse "HH:MM" to total minutes
+const parseTime = (time: string): number => {
+  const [h, m] = time.split(':').map(Number)
+  return h * 60 + m
+}
+
 const PrePlanning: React.FC = () => {
   const [selectedBlock, setSelectedBlock] = useState<string | null>(null)
   const [draggedBlock, setDraggedBlock] = useState<Block | null>(null)
+  const [dragOverDay, setDragOverDay] = useState<string | null>(null)
   const [validationMessages, setValidationMessages] = useState<ValidationMessage[]>([])
   const [simulationStatus, setSimulationStatus] = useState<'idle' | 'running' | 'completed' | 'error'>('idle')
-  
-  // Mock data - în realitate ar veni din context/API
-  const days: Day[] = [
+
+  // Match durations (from Configuration mandatory rules)
+  const singlesDuration = 60 // min
+  const doublesDuration = 45 // min
+
+  // Tournament days
+  const days: Day[] = useMemo(() => [
     { date: '2025-02-15', dayName: 'Sambata', dayNumber: 1 },
     { date: '2025-02-16', dayName: 'Duminica', dayNumber: 2 },
     { date: '2025-02-17', dayName: 'Luni', dayNumber: 3 }
-  ]
+  ], [])
 
-  const courts: Court[] = [
-    { id: 'court1', name: 'Teren Central', surface: 'Zgura' },
-    { id: 'court2', name: 'Teren 2', surface: 'Zgura' },
-    { id: 'court3', name: 'Teren 3', surface: 'Hard' }
-  ]
+  // Court availability (same structure as Configuration module)
+  const courtAvailability: CourtAvailability[] = useMemo(() => [
+    {
+      courtId: 'court1',
+      courtName: 'Teren Central',
+      surface: 'Zgura',
+      days: [
+        {
+          date: '2025-02-15',
+          dayName: 'Sambata',
+          timeSlots: [
+            { start: '09:00', end: '12:00' },
+            { start: '14:00', end: '18:00' }
+          ]
+        },
+        {
+          date: '2025-02-16',
+          dayName: 'Duminica',
+          timeSlots: [
+            { start: '09:00', end: '12:00' },
+            { start: '14:00', end: '20:00' }
+          ]
+        },
+        {
+          date: '2025-02-17',
+          dayName: 'Luni',
+          timeSlots: [
+            { start: '09:00', end: '12:00' }
+          ]
+        }
+      ]
+    },
+    {
+      courtId: 'court2',
+      courtName: 'Teren 2',
+      surface: 'Zgura',
+      days: [
+        {
+          date: '2025-02-15',
+          dayName: 'Sambata',
+          timeSlots: [
+            { start: '09:00', end: '12:00' }
+          ]
+        },
+        {
+          date: '2025-02-16',
+          dayName: 'Duminica',
+          timeSlots: [
+            { start: '09:00', end: '12:00' }
+          ]
+        },
+        {
+          date: '2025-02-17',
+          dayName: 'Luni',
+          timeSlots: [
+            { start: '09:00', end: '12:00' }
+          ]
+        }
+      ]
+    }
+  ], [])
 
+  // Blocks state — no courtId, blocks are assigned to days
   const [blocks, setBlocks] = useState<Block[]>([
     {
       id: 'block1',
@@ -85,9 +156,9 @@ const PrePlanning: React.FC = () => {
       round: 1,
       roundName: 'Tur 1',
       matchCount: 8,
-      startTime: '08:00',
-      endTime: '12:00',
-      courtId: 'court1',
+      gameType: 'singles',
+      startTime: '09:00',
+      endTime: '17:00',
       date: '2025-02-15'
     },
     {
@@ -97,9 +168,9 @@ const PrePlanning: React.FC = () => {
       round: 1,
       roundName: 'Tur 1',
       matchCount: 4,
-      startTime: '14:00',
-      endTime: '16:00',
-      courtId: 'court1',
+      gameType: 'singles',
+      startTime: '09:00',
+      endTime: '13:00',
       date: '2025-02-15'
     },
     {
@@ -109,9 +180,9 @@ const PrePlanning: React.FC = () => {
       round: 1,
       roundName: 'Tur 1',
       matchCount: 4,
-      startTime: '08:00',
-      endTime: '10:00',
-      courtId: 'court2',
+      gameType: 'doubles',
+      startTime: '14:00',
+      endTime: '17:00',
       date: '2025-02-15'
     },
     {
@@ -121,42 +192,58 @@ const PrePlanning: React.FC = () => {
       round: 2,
       roundName: 'Tur 2',
       matchCount: 4,
-      startTime: '08:00',
-      endTime: '10:00',
-      courtId: 'court1',
+      gameType: 'singles',
+      startTime: '09:00',
+      endTime: '13:00',
       date: '2025-02-16'
     },
     {
-      id: 'block5-frag1',
-      drawId: 'draw1',
-      drawName: 'Simplu N5',
-      round: 3,
-      roundName: 'Tur 3',
-      matchCount: 1,
-      startTime: '11:00',
-      endTime: '12:00',
-      courtId: 'court1',
-      date: '2025-02-16',
-      isFragment: true,
-      parentBlockId: 'block5',
-      fragmentIndex: 1,
-      totalFragments: 2
+      id: 'block5',
+      drawId: 'draw2',
+      drawName: 'Simplu N4',
+      round: 2,
+      roundName: 'Tur 2',
+      matchCount: 4,
+      gameType: 'singles',
+      startTime: '14:00',
+      endTime: '18:00',
+      date: '2025-02-16'
     },
     {
-      id: 'block5-frag2',
+      id: 'block6',
+      drawId: 'draw3',
+      drawName: 'Dublu N4',
+      round: 2,
+      roundName: 'Tur 2',
+      matchCount: 2,
+      gameType: 'doubles',
+      startTime: '09:00',
+      endTime: '10:30',
+      date: '2025-02-16'
+    },
+    {
+      id: 'block7',
       drawId: 'draw1',
       drawName: 'Simplu N5',
       round: 3,
       roundName: 'Tur 3',
+      matchCount: 2,
+      gameType: 'singles',
+      startTime: '09:00',
+      endTime: '11:00',
+      date: '2025-02-17'
+    },
+    {
+      id: 'block8',
+      drawId: 'draw3',
+      drawName: 'Dublu N4',
+      round: 3,
+      roundName: 'Tur 3 (Finala)',
       matchCount: 1,
-      startTime: '14:00',
-      endTime: '15:00',
-      courtId: 'court2',
-      date: '2025-02-16',
-      isFragment: true,
-      parentBlockId: 'block5',
-      fragmentIndex: 2,
-      totalFragments: 2
+      gameType: 'doubles',
+      startTime: '11:00',
+      endTime: '11:45',
+      date: '2025-02-17'
     }
   ])
 
@@ -201,48 +288,79 @@ const PrePlanning: React.FC = () => {
     }
   ]
 
-  // Calculate total matches per day
-  const getMatchesPerDay = (date: string): number => {
-    return blocks
-      .filter(block => block.date === date)
-      .reduce((sum, block) => sum + block.matchCount, 0)
-  }
+  // Calculate available slots for a given day and match duration
+  const calculateDaySlots = useCallback((date: string, matchDuration: number): number => {
+    let totalSlots = 0
+    for (const court of courtAvailability) {
+      const dayData = court.days.find(d => d.date === date)
+      if (!dayData) continue
+      for (const slot of dayData.timeSlots) {
+        const intervalMinutes = parseTime(slot.end) - parseTime(slot.start)
+        totalSlots += Math.floor(intervalMinutes / matchDuration)
+      }
+    }
+    return totalSlots
+  }, [courtAvailability])
 
-  // Get blocks for a specific court and date
-  const getBlocksForCourtAndDay = (courtId: string, date: string): Block[] => {
-    return blocks.filter(block => block.courtId === courtId && block.date === date)
-  }
+  // Get blocks for a specific day
+  const getBlocksForDay = useCallback((date: string): Block[] => {
+    return blocks.filter(block => block.date === date)
+  }, [blocks])
 
-  // Handle block drag start
+  // Count allocated matches per day by type
+  const getAllocatedPerDay = useCallback((date: string) => {
+    const dayBlocks = getBlocksForDay(date)
+    const singles = dayBlocks
+      .filter(b => b.gameType === 'singles')
+      .reduce((sum, b) => sum + b.matchCount, 0)
+    const doubles = dayBlocks
+      .filter(b => b.gameType === 'doubles')
+      .reduce((sum, b) => sum + b.matchCount, 0)
+    return { singles, doubles }
+  }, [getBlocksForDay])
+
+  // Day stats (memoized)
+  const dayStats = useMemo(() => {
+    return days.map(day => ({
+      date: day.date,
+      allocated: getAllocatedPerDay(day.date),
+      slotsS: calculateDaySlots(day.date, singlesDuration),
+      slotsD: calculateDaySlots(day.date, doublesDuration)
+    }))
+  }, [days, getAllocatedPerDay, calculateDaySlots, singlesDuration, doublesDuration])
+
+  // Drag & drop handlers — day-to-day movement
   const handleDragStart = (e: React.DragEvent, block: Block) => {
     setDraggedBlock(block)
     e.dataTransfer.effectAllowed = 'move'
   }
 
-  // Handle drag over
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent, date: string) => {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
+    setDragOverDay(date)
   }
 
-  // Handle drop
-  const handleDrop = (e: React.DragEvent, courtId: string, date: string) => {
+  const handleDragLeave = () => {
+    setDragOverDay(null)
+  }
+
+  const handleDrop = (e: React.DragEvent, date: string) => {
     e.preventDefault()
     if (!draggedBlock) return
 
-    // Move block to new position
-    setBlocks(prev => prev.map(block => 
+    setBlocks(prev => prev.map(block =>
       block.id === draggedBlock.id
-        ? { ...block, courtId, date }
+        ? { ...block, date }
         : block
     ))
 
-    // Validate after move
     validateSchedule()
     setDraggedBlock(null)
+    setDragOverDay(null)
   }
 
-  // Split block across multiple courts
+  // Split block
   const handleSplitBlock = (blockId: string) => {
     const block = blocks.find(b => b.id === blockId)
     if (!block || block.matchCount < 2) return
@@ -262,7 +380,6 @@ const PrePlanning: React.FC = () => {
         ...block,
         id: `${blockId}-frag2`,
         matchCount: block.matchCount - halfMatches,
-        courtId: courts[1]?.id || block.courtId,
         isFragment: true,
         parentBlockId: blockId,
         fragmentIndex: 2,
@@ -276,7 +393,7 @@ const PrePlanning: React.FC = () => {
     ])
   }
 
-  // Reunite block fragments
+  // Reunite fragments
   const handleReuniteBlock = (parentBlockId: string) => {
     const fragments = blocks.filter(b => b.parentBlockId === parentBlockId)
     if (fragments.length < 2) return
@@ -304,20 +421,23 @@ const PrePlanning: React.FC = () => {
   const validateSchedule = () => {
     const messages: ValidationMessage[] = []
 
-    // Check capacity
-    blocks.forEach(block => {
-      const dayBlocks = getBlocksForCourtAndDay(block.courtId, block.date)
-      const totalHours = dayBlocks.reduce((sum, b) => {
-        const start = parseInt(b.startTime.split(':')[0])
-        const end = parseInt(b.endTime.split(':')[0])
-        return sum + (end - start)
-      }, 0)
+    // Check capacity per day
+    days.forEach(day => {
+      const stats = dayStats.find(s => s.date === day.date)
+      if (!stats) return
 
-      if (totalHours > 12) {
+      if (stats.allocated.singles > stats.slotsS) {
         messages.push({
           type: 'critical',
-          message: `Depasire capacitate pe ${block.courtId} in ${block.date}`,
-          details: `Total ${totalHours} ore programate (maxim 12)`
+          message: `Depasire capacitate simplu in ${day.dayName}`,
+          details: `${stats.allocated.singles} meciuri alocate, doar ${stats.slotsS} sloturi disponibile`
+        })
+      }
+      if (stats.allocated.doubles > stats.slotsD) {
+        messages.push({
+          type: 'critical',
+          message: `Depasire capacitate dublu in ${day.dayName}`,
+          details: `${stats.allocated.doubles} meciuri alocate, doar ${stats.slotsD} sloturi disponibile`
         })
       }
     })
@@ -334,31 +454,36 @@ const PrePlanning: React.FC = () => {
     drawRounds.forEach((rounds, drawId) => {
       const sortedRounds = Array.from(rounds).sort()
       for (let i = 1; i < sortedRounds.length; i++) {
-        if (sortedRounds[i] !== sortedRounds[i-1] + 1) {
+        if (sortedRounds[i] !== sortedRounds[i - 1] + 1) {
+          const drawName = drawsInfo.find(d => d.id === drawId)?.name || drawId
           messages.push({
             type: 'warning',
-            message: `Nerespectare uniformizare pentru ${drawId}`,
-            details: `Turul ${sortedRounds[i-1]} nu este complet inainte de turul ${sortedRounds[i]}`
+            message: `Nerespectare uniformizare pentru ${drawName}`,
+            details: `Turul ${sortedRounds[i - 1]} nu este complet inainte de turul ${sortedRounds[i]}`
           })
         }
       }
     })
 
     // Check max 2 rounds per day per draw
-    const roundsPerDayPerDraw = new Map<string, number>()
+    const roundsPerDayPerDraw = new Map<string, Set<number>>()
     blocks.forEach(block => {
-      const key = `${block.drawId}-${block.date}`
-      const currentRounds = roundsPerDayPerDraw.get(key) || 0
-      roundsPerDayPerDraw.set(key, Math.max(currentRounds, block.round))
+      const key = `${block.drawId}|${block.date}`
+      if (!roundsPerDayPerDraw.has(key)) {
+        roundsPerDayPerDraw.set(key, new Set())
+      }
+      roundsPerDayPerDraw.get(key)!.add(block.round)
     })
 
-    roundsPerDayPerDraw.forEach((maxRound, key) => {
-      if (maxRound > 2) {
-        const [drawId, date] = key.split('-')
+    roundsPerDayPerDraw.forEach((rounds, key) => {
+      if (rounds.size > 2) {
+        const [drawId, date] = key.split('|')
+        const drawName = drawsInfo.find(d => d.id === drawId)?.name || drawId
+        const dayName = days.find(d => d.date === date)?.dayName || date
         messages.push({
           type: 'critical',
           message: `Depasire max 2 tururi/zi`,
-          details: `${drawId} are ${maxRound} tururi programate in ${date}`
+          details: `${drawName} are ${rounds.size} tururi programate in ${dayName}`
         })
       }
     })
@@ -369,8 +494,6 @@ const PrePlanning: React.FC = () => {
   // Run simulation
   const handleRunSimulation = () => {
     setSimulationStatus('running')
-    
-    // Simulate processing
     setTimeout(() => {
       validateSchedule()
       setSimulationStatus('completed')
@@ -378,14 +501,17 @@ const PrePlanning: React.FC = () => {
   }
 
   const getBlockColor = (block: Block): string => {
-    const colors = {
-      draw1: 'bg-blue-100 border-blue-300',
-      draw2: 'bg-green-100 border-green-300',
-      draw3: 'bg-purple-100 border-purple-300',
-      draw4: 'bg-orange-100 border-orange-300'
+    const colors: Record<string, string> = {
+      draw1: 'bg-blue-100 border-blue-300 text-blue-900',
+      draw2: 'bg-green-100 border-green-300 text-green-900',
+      draw3: 'bg-purple-100 border-purple-300 text-purple-900',
+      draw4: 'bg-orange-100 border-orange-300 text-orange-900'
     }
-    return colors[block.drawId as keyof typeof colors] || 'bg-gray-100 border-gray-300'
+    return colors[block.drawId] || 'bg-gray-100 border-gray-300 text-gray-900'
   }
+
+  const getGameTypeLabel = (type: 'singles' | 'doubles') =>
+    type === 'singles' ? 'S' : 'D'
 
   return (
     <div className="h-full overflow-auto bg-gray-50">
@@ -396,10 +522,10 @@ const PrePlanning: React.FC = () => {
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Pre-Planning</h1>
               <p className="text-sm text-gray-600 mt-1">
-                Modul 2: Programare efectiva si afisare blocuri
+                Modul 2: Vizualizare consum disponibilitati si distributie blocuri pe zile
               </p>
             </div>
-            
+
             <div className="flex items-center space-x-3">
               <button
                 onClick={handleRunSimulation}
@@ -418,7 +544,7 @@ const PrePlanning: React.FC = () => {
                 ) : (
                   <>
                     <PlayIcon className="w-4 h-4 mr-2" />
-                    Salveaza & Simuleaza
+                    Salveaza &amp; Simuleaza
                   </>
                 )}
               </button>
@@ -433,7 +559,7 @@ const PrePlanning: React.FC = () => {
               <div
                 key={index}
                 className={`rounded-lg p-4 flex items-start ${
-                  msg.type === 'critical' 
+                  msg.type === 'critical'
                     ? 'bg-red-50 border border-red-200'
                     : msg.type === 'warning'
                     ? 'bg-amber-50 border border-amber-200'
@@ -441,15 +567,15 @@ const PrePlanning: React.FC = () => {
                 }`}
               >
                 {msg.type === 'critical' ? (
-                  <ExclamationCircleIcon className="w-5 h-5 text-red-600 mr-3 mt-0.5" />
+                  <ExclamationCircleIcon className="w-5 h-5 text-red-600 mr-3 mt-0.5 flex-shrink-0" />
                 ) : msg.type === 'warning' ? (
-                  <ExclamationTriangleIcon className="w-5 h-5 text-amber-600 mr-3 mt-0.5" />
+                  <ExclamationTriangleIcon className="w-5 h-5 text-amber-600 mr-3 mt-0.5 flex-shrink-0" />
                 ) : (
-                  <InformationCircleIcon className="w-5 h-5 text-blue-600 mr-3 mt-0.5" />
+                  <InformationCircleIcon className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" />
                 )}
                 <div>
                   <p className={`text-sm font-medium ${
-                    msg.type === 'critical' 
+                    msg.type === 'critical'
                       ? 'text-red-900'
                       : msg.type === 'warning'
                       ? 'text-amber-900'
@@ -459,7 +585,7 @@ const PrePlanning: React.FC = () => {
                   </p>
                   {msg.details && (
                     <p className={`text-xs mt-1 ${
-                      msg.type === 'critical' 
+                      msg.type === 'critical'
                         ? 'text-red-700'
                         : msg.type === 'warning'
                         ? 'text-amber-700'
@@ -474,132 +600,156 @@ const PrePlanning: React.FC = () => {
           </div>
         )}
 
-        {/* Main Planning Grid */}
+        {/* Day Columns Grid */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[800px]">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Terenuri
-                  </th>
-                  {days.map(day => (
-                    <th key={day.date} className="px-4 py-3 text-center border-l border-gray-200">
-                      <div className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Ziua {day.dayNumber}
+          <div className="grid grid-cols-3 divide-x divide-gray-200">
+            {days.map((day, dayIndex) => {
+              const stats = dayStats[dayIndex]
+              const dayBlocks = getBlocksForDay(day.date)
+              const isDropTarget = dragOverDay === day.date
+
+              return (
+                <div
+                  key={day.date}
+                  className={`flex flex-col min-h-[400px] transition-colors ${
+                    isDropTarget ? 'bg-blue-50' : ''
+                  }`}
+                  onDragOver={(e) => handleDragOver(e, day.date)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day.date)}
+                >
+                  {/* Day Header */}
+                  <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 text-center">
+                    <div className="text-sm font-bold text-gray-900 uppercase">
+                      Ziua {day.dayNumber}
+                    </div>
+                    <div className="text-xs text-gray-600 mt-0.5">{day.dayName}</div>
+                    <div className="text-xs text-gray-500">{day.date}</div>
+                  </div>
+
+                  {/* Block Stack */}
+                  <div className="flex-1 p-3 space-y-2">
+                    {dayBlocks.length === 0 && (
+                      <div className="h-full flex items-center justify-center text-xs text-gray-400 border-2 border-dashed border-gray-200 rounded-lg p-4">
+                        Trage un bloc aici
                       </div>
-                      <div className="text-xs text-gray-600 mt-1">{day.dayName}</div>
-                      <div className="text-xs text-gray-500">{day.date}</div>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {courts.map(court => (
-                  <tr key={court.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{court.name}</div>
-                      <div className="text-xs text-gray-500">{court.surface}</div>
-                    </td>
-                    {days.map(day => (
-                      <td 
-                        key={`${court.id}-${day.date}`}
-                        className="px-4 py-4 border-l border-gray-200 align-top min-h-[120px]"
-                        onDragOver={handleDragOver}
-                        onDrop={(e) => handleDrop(e, court.id, day.date)}
+                    )}
+
+                    {dayBlocks.map(block => (
+                      <div
+                        key={block.id}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, block)}
+                        onClick={() => setSelectedBlock(selectedBlock === block.id ? null : block.id)}
+                        className={`
+                          p-3 rounded-lg border-2 cursor-move transition-all
+                          ${getBlockColor(block)}
+                          ${selectedBlock === block.id ? 'ring-2 ring-blue-500 ring-offset-2' : ''}
+                          ${draggedBlock?.id === block.id ? 'opacity-50' : ''}
+                          hover:shadow-md
+                        `}
                       >
-                        <div className="space-y-2">
-                          {getBlocksForCourtAndDay(court.id, day.date).map(block => (
-                            <div
-                              key={block.id}
-                              draggable
-                              onDragStart={(e) => handleDragStart(e, block)}
-                              onClick={() => setSelectedBlock(block.id)}
-                              className={`
-                                p-3 rounded-lg border-2 cursor-move transition-all
-                                ${getBlockColor(block)}
-                                ${selectedBlock === block.id ? 'ring-2 ring-blue-500 ring-offset-2' : ''}
-                                ${draggedBlock?.id === block.id ? 'opacity-50' : ''}
-                                hover:shadow-md
-                              `}
-                            >
-                              <div className="flex items-start justify-between mb-1">
-                                <div className="text-xs font-semibold text-gray-900">
-                                  {block.drawName}
-                                </div>
-                                {block.isFragment && (
-                                  <span className="text-xs bg-yellow-100 text-yellow-800 px-1 rounded">
-                                    {block.fragmentIndex}/{block.totalFragments}
-                                  </span>
-                                )}
-                              </div>
-                              <div className="text-xs text-gray-700">
-                                {block.roundName}
-                              </div>
-                              <div className="text-xs text-gray-600 mt-1">
-                                {block.startTime} - {block.endTime}
-                              </div>
-                              <div className="text-xs font-medium text-gray-800 mt-1">
-                                {block.matchCount} {block.matchCount === 1 ? 'meci' : 'meciuri'}
-                              </div>
-                              
-                              {/* Block Actions */}
-                              {selectedBlock === block.id && (
-                                <div className="flex space-x-1 mt-2">
-                                  {!block.isFragment && block.matchCount > 1 && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        handleSplitBlock(block.id)
-                                      }}
-                                      className="p-1 bg-white rounded hover:bg-gray-100"
-                                      title="Imparte bloc"
-                                    >
-                                      <ArrowsPointingOutIcon className="w-3 h-3 text-gray-600" />
-                                    </button>
-                                  )}
-                                  {block.isFragment && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        handleReuniteBlock(block.parentBlockId!)
-                                      }}
-                                      className="p-1 bg-white rounded hover:bg-gray-100"
-                                      title="Reuneste fragmente"
-                                    >
-                                      <ArrowsPointingInIcon className="w-3 h-3 text-gray-600" />
-                                    </button>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          ))}
+                        <div className="flex items-start justify-between mb-1">
+                          <div className="text-xs font-bold">
+                            {block.drawName}
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
+                              block.gameType === 'singles'
+                                ? 'bg-white/60 text-gray-800'
+                                : 'bg-white/60 text-gray-800'
+                            }`}>
+                              {getGameTypeLabel(block.gameType)}
+                            </span>
+                            {block.isFragment && (
+                              <span className="text-xs bg-yellow-200 text-yellow-900 px-1.5 py-0.5 rounded font-medium">
+                                {block.fragmentIndex}/{block.totalFragments}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </td>
+                        <div className="text-xs opacity-80">
+                          {block.roundName}
+                        </div>
+                        <div className="text-xs opacity-70 mt-1">
+                          {block.startTime} - {block.endTime}
+                        </div>
+                        <div className="text-xs font-semibold mt-1">
+                          {block.matchCount} {block.matchCount === 1 ? 'meci' : 'meciuri'}
+                        </div>
+
+                        {/* Block Actions */}
+                        {selectedBlock === block.id && (
+                          <div className="flex space-x-1 mt-2 pt-2 border-t border-black/10">
+                            {!block.isFragment && block.matchCount > 1 && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleSplitBlock(block.id)
+                                }}
+                                className="p-1.5 bg-white/80 rounded hover:bg-white text-xs flex items-center"
+                                title="Imparte bloc"
+                              >
+                                <ArrowsPointingOutIcon className="w-3 h-3 mr-1" />
+                                Imparte
+                              </button>
+                            )}
+                            {block.isFragment && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleReuniteBlock(block.parentBlockId!)
+                                }}
+                                className="p-1.5 bg-white/80 rounded hover:bg-white text-xs flex items-center"
+                                title="Reuneste fragmente"
+                              >
+                                <ArrowsPointingInIcon className="w-3 h-3 mr-1" />
+                                Reuneste
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     ))}
-                  </tr>
-                ))}
-                
-                {/* Total Matches Row */}
-                <tr className="bg-gray-100 font-semibold">
-                  <td className="px-4 py-3 text-sm text-gray-900">
-                    TOTAL MECIURI
-                  </td>
-                  {days.map(day => (
-                    <td key={day.date} className="px-4 py-3 text-center text-sm text-gray-900 border-l border-gray-200">
-                      {getMatchesPerDay(day.date)}
-                    </td>
-                  ))}
-                </tr>
-              </tbody>
-            </table>
+                  </div>
+
+                  {/* Day Footer — Alocate + Dispo */}
+                  <div className="border-t border-gray-200 bg-gray-50 px-4 py-3">
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <div className="font-semibold text-gray-700 mb-1">Alocate</div>
+                        <div className="flex space-x-3">
+                          <span className="text-blue-700 font-medium">S:{stats.allocated.singles}</span>
+                          <span className="text-purple-700 font-medium">D:{stats.allocated.doubles}</span>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="font-semibold text-gray-700 mb-1">Disponibil</div>
+                        <div className="flex space-x-3">
+                          <span className={`font-medium ${
+                            stats.allocated.singles > stats.slotsS ? 'text-red-600' : 'text-blue-600'
+                          }`}>
+                            S:{stats.slotsS}
+                          </span>
+                          <span className={`font-medium ${
+                            stats.allocated.doubles > stats.slotsD ? 'text-red-600' : 'text-purple-600'
+                          }`}>
+                            D:{stats.slotsD}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
 
         {/* Tournament Information */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Informatii Tablouri</h2>
-          
+
           <div className="space-y-4">
             {/* Elimination Draws */}
             <div>
@@ -676,7 +826,7 @@ const PrePlanning: React.FC = () => {
               <button className="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300 transition-colors font-medium">
                 ← Inapoi la Configurator
               </button>
-              <button 
+              <button
                 disabled={validationMessages.some(m => m.type === 'critical')}
                 className={`px-4 py-2 text-sm rounded-lg font-medium transition-colors ${
                   validationMessages.some(m => m.type === 'critical')
