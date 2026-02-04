@@ -226,7 +226,9 @@ The white page issue is recurring and MUST be addressed proactively with every d
 
 ### Deployment Notes
 - Application is deployed to Vercel at: https://sportyamockup.vercel.app/
-- Repository: https://bitbucket.org/mpgro/sportyamockup
+- Repository: https://github.com/tudormocuta-mpg/sportyamockup (migrated from Bitbucket)
+- Legacy Bitbucket repo: https://bitbucket.org/mpgro/sportyamockup (no longer used for deployment)
+- Vercel deploys from GitHub `main` branch
 - Main entry point: /pages/tournament-scheduler.tsx
 
 ### Git Configuration

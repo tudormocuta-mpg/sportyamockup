@@ -1,23 +1,12 @@
 import React, { useState, useMemo } from 'react'
 import { useTournament } from '../../contexts/TournamentContext'
 import { Blocker } from '../../types/tournament'
-import { PlusIcon, TrashIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
+import { TrashIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 
 const Blockers: React.FC = () => {
-  const { state, addBlocker, removeBlocker } = useTournament()
-  const [showAddForm, setShowAddForm] = useState(false)
+  const { state, removeBlocker } = useTournament()
   const [filterType, setFilterType] = useState<Blocker['type'] | 'all'>('all')
   const [filterDate, setFilterDate] = useState<string>('all')
-  
-  const [newBlocker, setNewBlocker] = useState({
-    courtId: '',
-    date: state.selectedDate,
-    startTime: '',
-    endTime: '',
-    title: '',
-    description: '',
-    type: 'maintenance' as Blocker['type']
-  })
 
   // Get available dates
   const availableDates = useMemo(() => {
@@ -60,31 +49,6 @@ const Blockers: React.FC = () => {
 
     return stats
   }, [state.blockers])
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const court = state.courts.find(c => c.id === newBlocker.courtId)
-    if (court) {
-      addBlocker({
-        ...newBlocker,
-        courtName: court.name
-      })
-      resetForm()
-    }
-  }
-
-  const resetForm = () => {
-    setNewBlocker({
-      courtId: '',
-      date: state.selectedDate,
-      startTime: '',
-      endTime: '',
-      title: '',
-      description: '',
-      type: 'maintenance'
-    })
-    setShowAddForm(false)
-  }
 
   const getTypeColor = (type: string): string => {
     switch (type) {
@@ -131,13 +95,6 @@ const Blockers: React.FC = () => {
               <h2 className="text-xl font-semibold text-gray-900">Court Blockers</h2>
               <p className="text-sm text-gray-600 mt-1">Manage court availability and restrictions</p>
             </div>
-            <button
-              onClick={() => setShowAddForm(!showAddForm)}
-              className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center"
-            >
-              <PlusIcon className="w-4 h-4 mr-2" />
-              Add Blocker
-            </button>
           </div>
         </div>
         
@@ -180,114 +137,6 @@ const Blockers: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Add Blocker Form */}
-      {showAddForm && (
-        <div className="bg-white border-b border-gray-200 p-6">
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-6 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Title</label>
-              <input
-                type="text"
-                required
-                value={newBlocker.title}
-                onChange={(e) => setNewBlocker(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="e.g., Maintenance"
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Court</label>
-              <select
-                required
-                value={newBlocker.courtId}
-                onChange={(e) => setNewBlocker(prev => ({ ...prev, courtId: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-              >
-                <option value="">Select Court</option>
-                {state.courts.map(court => (
-                  <option key={court.id} value={court.id}>{court.name}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Type</label>
-              <select
-                value={newBlocker.type}
-                onChange={(e) => setNewBlocker(prev => ({ ...prev, type: e.target.value as any }))}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-              >
-                <option value="maintenance">Maintenance</option>
-                <option value="reserved">Reserved</option>
-                <option value="unavailable">Unavailable</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Date</label>
-              <input
-                type="date"
-                required
-                value={newBlocker.date}
-                onChange={(e) => setNewBlocker(prev => ({ ...prev, date: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Start Time</label>
-              <input
-                type="time"
-                required
-                value={newBlocker.startTime}
-                onChange={(e) => setNewBlocker(prev => ({ ...prev, startTime: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">End Time</label>
-              <input
-                type="time"
-                required
-                value={newBlocker.endTime}
-                onChange={(e) => setNewBlocker(prev => ({ ...prev, endTime: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-              />
-            </div>
-            
-            <div className="md:col-span-4">
-              <label className="block text-xs font-medium text-gray-700 mb-1">Description (Optional)</label>
-              <input
-                type="text"
-                value={newBlocker.description}
-                onChange={(e) => setNewBlocker(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Additional notes..."
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-              />
-            </div>
-            
-            <div className="md:col-span-2 flex items-end space-x-2">
-              <button
-                type="submit"
-                className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors font-medium"
-              >
-                Save
-              </button>
-              <button
-                type="button"
-                onClick={resetForm}
-                className="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300 transition-colors font-medium"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
 
       {/* Blockers Table */}
       <div className="flex-1 overflow-auto">
@@ -380,7 +229,7 @@ const Blockers: React.FC = () => {
         {filteredBlockers.length === 0 && (
           <div className="text-center py-12 text-gray-500">
             <div className="text-sm">No blockers found</div>
-            <div className="text-xs mt-2">Add a new blocker or adjust your filters</div>
+            <div className="text-xs mt-2">Adjust your filters to see blockers</div>
           </div>
         )}
       </div>
