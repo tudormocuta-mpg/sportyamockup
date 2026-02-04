@@ -49,26 +49,25 @@ const DrawView: React.FC = () => {
   }
 
   // Create bracket structure
-  const createBracketStructure = () => {
+  const bracketStructure = useMemo(() => {
     if (!currentDraw) return []
-    
+
     const drawSize = currentDraw.maxPlayers || 32
     const rounds = getRoundNames(drawSize)
     const bracket: BracketMatch[][] = []
-    
+
     let matchesInRound = drawSize / 2
     let matchNumber = 1
-    
+
     rounds.forEach((roundName, roundIndex) => {
       const roundMatches: BracketMatch[] = []
       const fullRoundName = getFullRoundName(roundName)
       const actualMatches = drawMatches.filter(m => {
-        // Match round names - handle variations
-        return m.roundName === fullRoundName || 
+        return m.roundName === fullRoundName ||
                m.roundName === roundName ||
                m.roundName?.includes(fullRoundName.replace('-', ''))
       })
-      
+
       for (let i = 0; i < matchesInRound; i++) {
         const actualMatch = actualMatches[i] || null
         roundMatches.push({
@@ -78,15 +77,13 @@ const DrawView: React.FC = () => {
           position: i
         })
       }
-      
+
       bracket.push(roundMatches)
       matchesInRound = Math.floor(matchesInRound / 2)
     })
-    
-    return bracket
-  }
 
-  const bracketStructure = useMemo(() => createBracketStructure(), [currentDraw, drawMatches])
+    return bracket
+  }, [currentDraw, drawMatches])
 
   // Get match winner
   const getMatchWinner = (match: Match | null): 1 | 2 | null => {

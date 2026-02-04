@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import { useTournament } from '../../contexts/TournamentContext'
 import { LogEntry, LogSeverity, LogActionType } from '../../types/tournament'
 import { 
@@ -81,11 +81,11 @@ const Logs: React.FC = () => {
   }
 
   // Filter logs based on date
-  const filterByDate = (log: LogEntry) => {
+  const filterByDate = useCallback((log: LogEntry) => {
     const logDate = new Date(log.timestamp)
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    
+
     switch (dateFilter) {
       case 'today':
         return logDate >= today
@@ -96,7 +96,7 @@ const Logs: React.FC = () => {
       default:
         return true
     }
-  }
+  }, [dateFilter])
 
   // Filter and search logs
   const filteredLogs = useMemo(() => {
@@ -125,7 +125,7 @@ const Logs: React.FC = () => {
         return true
       })
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-  }, [state.logs, filterType, filterSeverity, searchTerm, dateFilter])
+  }, [state.logs, filterType, filterSeverity, searchTerm, filterByDate])
 
   // Toggle log expansion
   const toggleLogExpansion = (logId: string) => {
@@ -170,7 +170,7 @@ const Logs: React.FC = () => {
       warnings: todayLogs.filter(l => l.severity === 'warning').length,
       matchActions: todayLogs.filter(l => l.actionType.startsWith('match_')).length
     }
-  }, [state.logs, dateFilter])
+  }, [state.logs, filterByDate])
 
   return (
     <div className="h-full flex flex-col bg-gray-50">

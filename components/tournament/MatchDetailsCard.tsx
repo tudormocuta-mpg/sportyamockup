@@ -50,7 +50,7 @@ const MatchDetailsCard: React.FC<MatchDetailsCardProps> = ({ match, onClose }) =
     setScoreForm(parseScore(match.score || ''))
     setHasChanges(false)
     setValidationError(null)
-  }, [match.id]) // Reset when match ID changes
+  }, [match.id, match.scheduledTime, match.scheduledDate, match.courtId, match.score, match.notes])
   
   // Check if form has changes
   useEffect(() => {

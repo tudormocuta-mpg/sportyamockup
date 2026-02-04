@@ -41,3 +41,4 @@ next-env.d.ts
 # Temporary directories
 git_temp/
 .git_new/
+.vercel

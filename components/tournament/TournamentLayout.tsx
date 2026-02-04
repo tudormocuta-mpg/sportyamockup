@@ -177,7 +177,11 @@ const TournamentLayout: React.FC = () => {
               <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 SportyaOS Tournament Scheduler
               </h1>
-              <p className="text-gray-600 mt-1 font-medium">Professional tournament management system</p>
+              <p className="text-gray-600 mt-1 font-medium">
+                Professional tournament management system
+                <span className="mx-2">—</span>
+                <span className="text-gray-400 text-sm">Version: {process.env.BUILD_TIMESTAMP}</span>
+              </p>
             </div>
             
             {/* Publish Button */}
