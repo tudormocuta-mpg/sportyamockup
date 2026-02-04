@@ -54,7 +54,7 @@ interface PriorityStage {
 const Configuration: React.FC = () => {
   const [configMode, setConfigMode] = useState<'template' | 'advanced'>('template')
   const [activeSection, setActiveSection] = useState<string>('mandatory')
-  const [expandedStages, setExpandedStages] = useState<string[]>(['stage1', 'stage2', 'stage3'])
+  const [expandedStages, setExpandedStages] = useState<string[]>(['stage1', 'stage2'])
   const [draggedRule, setDraggedRule] = useState<string | null>(null)
   const [draggedStage, setDraggedStage] = useState<string | null>(null)
 
@@ -79,13 +79,31 @@ const Configuration: React.FC = () => {
       value: 45
     },
     {
-      id: 'min-rest',
-      name: 'Pauza minima intre meciuri',
+      id: 'min-rest-ss',
+      name: 'Pauza min. Simplu → Simplu',
       defaultValue: 90,
       unit: 'min',
       editable: true,
-      description: 'Pauza minima pentru acelasi jucator intre doua meciuri',
+      description: 'Pauza minima pentru acelasi jucator intre doua meciuri de simplu',
       value: 90
+    },
+    {
+      id: 'min-rest-sd',
+      name: 'Pauza min. Simplu → Dublu',
+      defaultValue: 60,
+      unit: 'min',
+      editable: true,
+      description: 'Pauza minima pentru acelasi jucator intre un meci de simplu si unul de dublu',
+      value: 60
+    },
+    {
+      id: 'min-rest-dd',
+      name: 'Pauza min. Dublu → Dublu',
+      defaultValue: 60,
+      unit: 'min',
+      editable: true,
+      description: 'Pauza minima pentru acelasi jucator intre doua meciuri de dublu',
+      value: 60
     },
     {
       id: 'max-matches-day',
@@ -167,8 +185,8 @@ const Configuration: React.FC = () => {
   const [priorityStages, setPriorityStages] = useState<PriorityStage[]>([
     {
       id: 'stage1',
-      title: 'ETAPA 1: SORTARE TABLOURI',
-      description: 'Determina ordinea in care tablourile sunt procesate',
+      title: 'ETAPA 1: SORTARE TABLOURI → CREARE STIVA',
+      description: 'Ordoneaza tablourile si creeaza stiva de meciuri. Algoritmul proceseaza tur cu tur (Tur 1 din toate tablourile, apoi Tur 2, etc.), adaugand meciurile in stiva conform ordinii tablourilor.',
       rules: [
         {
           id: 'rule1.1',
@@ -206,8 +224,8 @@ const Configuration: React.FC = () => {
     },
     {
       id: 'stage2',
-      title: 'ETAPA 2: PRIORITIZARE MECIURI',
-      description: 'Determina ordinea in care meciurile dintr-un tur/serie sunt alocate pe sloturi',
+      title: 'ETAPA 2: PRIORITIZARE SI EFICIENTIZARE MECIURI',
+      description: 'Reordoneaza meciuri in stiva conform regulilor active. Regulile muta anumite meciuri mai sus in stiva pentru a fi alocate prioritar. Anumite reguli (ex: Jucatori din afara) se aplica dinamic in timpul alocarii pe sloturi.',
       rules: [
         {
           id: 'rule2.1',
@@ -224,37 +242,6 @@ const Configuration: React.FC = () => {
           effect: 'Timp pentru deplasare',
           enabled: true,
           order: 2
-        }
-      ]
-    },
-    {
-      id: 'stage3',
-      title: 'ETAPA 3: OPTIMIZARE ALOCARE',
-      description: 'Ajusteaza plasarea meciurilor pentru eficienta',
-      rules: [
-        {
-          id: 'rule3.1',
-          name: 'Compactare temporala',
-          description: 'Minimizeaza golurile intre meciuri pe acelasi teren',
-          effect: 'Program compact',
-          enabled: true,
-          order: 1
-        },
-        {
-          id: 'rule3.2',
-          name: 'Minimizare fragmentare',
-          description: 'Evita impartirea unui bloc pe prea multe terenuri',
-          effect: 'Coerenta vizuala',
-          enabled: true,
-          order: 2
-        },
-        {
-          id: 'rule3.3',
-          name: 'Grupare jucator',
-          description: 'Meciurile aceluiasi jucator sunt programate cat mai aproape (respectand pauza minima)',
-          effect: 'Confort pentru jucator',
-          enabled: true,
-          order: 3
         }
       ]
     }
@@ -613,7 +600,7 @@ const Configuration: React.FC = () => {
                   >
                     <div className="flex items-center">
                       <div className="flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 rounded-lg mr-3 font-bold text-sm">
-                        {stage.id === 'stage1' ? '1' : stage.id === 'stage2' ? '2' : '3'}
+                        {stage.id === 'stage1' ? '1' : '2'}
                       </div>
                       <div className="text-left">
                         <h3 className="text-sm font-semibold text-gray-900">{stage.title}</h3>
@@ -730,22 +717,29 @@ const Configuration: React.FC = () => {
                   <div className="flex items-start">
                     <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold mr-3 mt-0.5">1</div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">Sortare Tablouri</p>
-                      <p className="text-xs text-gray-600">Aplica regulile din Etapa 1 pentru a ordona tablourile</p>
+                      <p className="text-sm font-medium text-gray-900">Sortare Tablouri → Creare Stiva</p>
+                      <p className="text-xs text-gray-600">Aplica regulile din Etapa 1 pentru a ordona tablourile si crea stiva de meciuri (tur cu tur)</p>
                     </div>
                   </div>
                   <div className="flex items-start">
                     <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold mr-3 mt-0.5">2</div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">Procesare Tururi</p>
-                      <p className="text-xs text-gray-600">Pentru fiecare tur, aplica regulile din Etapa 2 si aloca meciurile</p>
+                      <p className="text-sm font-medium text-gray-900">Prioritizare si Eficientizare</p>
+                      <p className="text-xs text-gray-600">Aplica regulile din Etapa 2 pentru a reordona meciurile in stiva</p>
                     </div>
                   </div>
                   <div className="flex items-start">
                     <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold mr-3 mt-0.5">3</div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">Optimizare</p>
-                      <p className="text-xs text-gray-600">Aplica regulile din Etapa 3 pentru eficienta maxima</p>
+                      <p className="text-sm font-medium text-gray-900">Alocare pe Sloturi</p>
+                      <p className="text-xs text-gray-600">Aloca fiecare meci pe primul slot disponibil, cu mecanism standby pentru conflicte</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start">
+                    <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold mr-3 mt-0.5">4</div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Validare Finala</p>
+                      <p className="text-xs text-gray-600">Verifica reguli critice si genereaza avertismente pentru reguli flexibile</p>
                     </div>
                   </div>
                 </div>
