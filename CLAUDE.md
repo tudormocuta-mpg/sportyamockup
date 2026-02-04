@@ -227,14 +227,19 @@ The white page issue is recurring and MUST be addressed proactively with every d
 ### Deployment Notes
 - Application is deployed to Vercel at: https://sportyamockup.vercel.app/
 - Repository: https://github.com/tudormocuta-mpg/sportyamockup (migrated from Bitbucket)
-- Legacy Bitbucket repo: https://bitbucket.org/mpgro/sportyamockup (no longer used for deployment)
 - Vercel deploys from GitHub `main` branch
 - Main entry point: /pages/tournament-scheduler.tsx
+- **Manual deployment** (if GitHub auto-deploy is not connected): `vercel --prod --yes`
+  - Requires Vercel CLI login first: `vercel login` (select GitHub)
 
 ### Git Configuration
-- **IMPORTANT**: All commits and pushes to the repository must be authored with email: tudor.mocuta@sportya.net
-- Set git config before committing: `git config user.email "tudor.mocuta@sportya.net"`
-- Set git config user name: `git config user.name "Tudor Mocuta"`
+- **IMPORTANT**: Every commit MUST have an author set. Vercel will reject deployments from commits without a proper author.
+- **BEFORE EVERY COMMIT**, ensure git config is set:
+  ```bash
+  git config user.email "tudor.mocuta@sportya.net"
+  git config user.name "Tudor Mocuta"
+  ```
+- These must be set per-repo (not just globally) to avoid "A commit author is required" errors on deployment.
 
 # important-instruction-reminders
 Do what has been asked; nothing more, nothing less.
